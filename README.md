@@ -44,3 +44,14 @@ Create the tables in the DB:
 ```sh
 mix ecto.migrate
 ```
+
+> I mirrored much of the functionality in @danielberkompas' original.
+> commit ref: 7484d17fbee5cf20825057802a38dac98bd6d3c1
+> But now I've reached the point where Phoenix 1.3 diverges ...
+> No more "Models" or Ecto callbacks ... need to "update" the code!
+
+
+Run a _single_ test while debugging:
+```sh
+mix test test/user/user_test.exs:9
+```

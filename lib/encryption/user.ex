@@ -22,13 +22,15 @@ defmodule Encryption.User do
   @doc """
   Creates a changeset based on the user and attrs
   """
-  def changeset(%User{} = user, attrs) do
+  def changeset(%User{} = user, attrs \\ :empty) do
     IO.inspect user
     user
     |> cast(attrs, [:name, :email, :email_hash])
     |> validate_required([:name, :email, :email_hash])
     |> set_hashed_fields
-    |> validate_unique(:email_hash, on: Encryption.Repo)
+    # |> validate_unique(:email_hash, on: Encryption.Repo)
+    # |> unique_constraint(:email_hash)
+    # |> validate_unique([:email_hash])
   end
 
   defp set_hashed_fields(changeset) do
