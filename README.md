@@ -30,3 +30,17 @@ mix ecto.create
 ```
 
 ![mix-ecto-create](https://user-images.githubusercontent.com/194400/35360428-914eb84a-0155-11e8-8395-1e352223f509.png)
+
+
+Create the `user` schema using generator command:
+```
+mix phx.gen.schema User users name:binary email:binary email_hash:binary
+```
+
+![phx.gen.schema](https://user-images.githubusercontent.com/194400/35360796-dc4507cc-0156-11e8-9cf1-7f4005e5ed34.png)
+
+
+Create the tables in the DB:
+```sh
+mix ecto.migrate
+```
