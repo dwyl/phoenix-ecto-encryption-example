@@ -56,3 +56,6 @@ config :encryption, Encryption.Repo,
   database: "encryption_dev",
   hostname: "localhost",
   pool_size: 10
+
+config :encryption, Encryption.AES,
+  key: :base64.decode("vA/K/7K6Z3obnTxlPx6fDuy/tiPj4FS7dDtUpfvRbG4=")
