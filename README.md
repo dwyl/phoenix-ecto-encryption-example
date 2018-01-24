@@ -5,7 +5,7 @@ http://blog.danielberkompas.com/elixir/security/2015/07/03/encrypting-data-with-
 > The _reason_ I have created this example is that Daniel's code
 is for Phoenix `v0.14.0` ... so needs a _lot_ of updating! <br />
 > Note: This is a "commands executed" and "changes made" log.
-It is _not_ a "complete beginners' tutorial", sorry.
+It is _not_ a "complete beginners' tutorial", sorry ... <br />
 If you _need_ a tutorial, please open an issue describing where/how you are "stuck".
 
 Creat a new Phoenix app called "Encryption":
@@ -23,3 +23,10 @@ move files:
 mv encryption/* ./
 mv encryption/.gitignore ./
 ```
+
+Create the database:
+```sh
+mix ecto.create
+```
+
+![mix-ecto-create](https://user-images.githubusercontent.com/194400/35360428-914eb84a-0155-11e8-8395-1e352223f509.png)
