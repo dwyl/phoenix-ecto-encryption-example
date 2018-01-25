@@ -1,4 +1,3 @@
-
 defmodule Encryption.EncryptedFieldTest do
   use ExUnit.Case
   alias Encryption.EncryptedField, as: Type

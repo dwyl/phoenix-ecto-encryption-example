@@ -21,7 +21,6 @@ defmodule Encryption.AESTest do
 
   test "can decrypt a value" do
     plaintext = "hello" |> AES.encrypt |> AES.decrypt
-    IO.inspect plaintext
     assert plaintext == "hello"
   end
 end

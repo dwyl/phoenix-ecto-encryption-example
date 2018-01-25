@@ -23,10 +23,10 @@ defmodule Encryption.UserTest do
 
   test "can decrypt values of encrypted fields when loaded from database" do
     Repo.insert! User.changeset(%User{}, @valid_attrs)
-    user = Repo.one(User)
-
+    user = User.one()
     assert user.name  == @valid_attrs.name
     assert user.email == @valid_attrs.email
+
     assert user.email_hash == Encryption.HashField.hash(@valid_attrs.email)
   end
 
