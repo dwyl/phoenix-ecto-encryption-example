@@ -20,8 +20,10 @@ defmodule Encryption.AES do
   """
   @spec encrypt(any) :: String.t
   def encrypt(plaintext) do
+    # IO.inspect key, label: "key \n"
+    # IO.inspect key, label: "key"
     iv    = :crypto.strong_rand_bytes(16)
-    state = :crypto.stream_init(:aes_ctr, key, iv)
+    state = :crypto.stream_init(:aes_ctr, key(), iv)
 
     {_state, ciphertext} = :crypto.stream_encrypt(state, to_string(plaintext))
     iv <> ciphertext
@@ -40,7 +42,7 @@ defmodule Encryption.AES do
   @spec decrypt(String.t) :: String.t
   def decrypt(ciphertext) do
     <<iv::binary-16, ciphertext::binary>> = ciphertext
-    state = :crypto.stream_init(:aes_ctr, key, iv)
+    state = :crypto.stream_init(:aes_ctr, key(), iv)
 
     {_state, plaintext} = :crypto.stream_decrypt(state, ciphertext)
     plaintext

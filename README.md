@@ -1,28 +1,52 @@
-# Phoenix Ecto Encryption Example
+<!-- # Phoenix Ecto Encryption Example -->
 
-> All Credit goes to @danielberkompas for his superb post:
-http://blog.danielberkompas.com/elixir/security/2015/07/03/encrypting-data-with-ecto.html <br />
-> The _reason_ I have created this example is that Daniel's code
-is for Phoenix `v0.14.0` ... so needs a _lot_ of updating! <br />
-> Note: This is a "commands executed" and "changes made" log.
-It is _not_ a "complete beginners' tutorial", sorry ... <br />
-If you _need_ a tutorial, please open an issue describing where/how you are "stuck".
+## Why?
+
+**Encrypting User/Personal data** stored by your Web App is ***essential***
+for security/privacy.
+
+>
+
+
+## What?
+
+This tutorial/example is intended as a _comprehensive_ answer
+to the question:
+
+> ["_**How to Encrypt/Decrypt Sensitive Data** in **Elixir** Before Inserting it Into the Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
+
+
+
+
+## Who?
+
+Any developer (_or technical decision maker / "application architect"_)
+who takes personal data protection seriously
+and wants a robust way of encrypting data `before` storing it.
+
+
+## How?
+
 
 Creat a new Phoenix app called "Encryption":
 ```sh
 mix phx.new encryption
 ```
-apparently app names must be lower case:
-![lower-case-app-names](https://user-images.githubusercontent.com/194400/35360087-73d69d88-0154-11e8-9f47-d9a9333d1e6c.png)
 
-Works with lowercase:
-![second-time-lucky](https://user-images.githubusercontent.com/194400/35360183-c522063c-0154-11e8-994a-7516bc0e5c1e.png)
+> Since I created the new phoenix app inside an existing git directory, <br />
+  I had to move the files into the "current working directory"
+  move files:
+  ```sh
+  mv encryption/* ./
+  mv encryption/.gitignore ./
+  ```
+  If you are creating the project from scratch without a git repo, <br />
+  you can skip this step. <br />
+  _Instead_ simply **change** into the `encryption` directory: <br />
+  ```sh
+  cd encryption
+  ```
 
-move files:
-```sh
-mv encryption/* ./
-mv encryption/.gitignore ./
-```
 
 Create the database:
 ```sh
@@ -45,13 +69,49 @@ Create the tables in the DB:
 mix ecto.migrate
 ```
 
-> I mirrored much of the functionality in @danielberkompas' original.
-> commit ref: 7484d17fbee5cf20825057802a38dac98bd6d3c1
-> But now I've reached the point where Phoenix 1.3 diverges ...
-> No more "Models" or Ecto callbacks ... need to "update" the code!
 
 
-Run a _single_ test while debugging:
+
+
+<br />
+
+## Credits
+
+_All_ Credit for this example goes to [@danielberkompas](https://github.com/danielberkompas) for his _superb_ post:
+http://blog.danielberkompas.com/elixir/security/2015/07/03/encrypting-data-with-ecto.html <br />
+
+Daniel's post is for [Phoenix `v0.14.0`](https://github.com/danielberkompas/danielberkompas.github.io/blob/c6eb249e5019e782e891bfeb591bc75f084fd97c/_posts/2015-07-03-encrypting-data-with-ecto.md) which is quite "old" now ...
+therefore a few changes/updates are required.
+e.g: There are no more "**Models**" in Phoenix 1.3 or Ecto callbacks.
+
+_Also_ his post only includes the "sample code" and is not a _complete_ example.
+Which means anyone following the post needs to _manually_ copy-paste the code...
+We prefer to include the _complete_ "end state" of any tutorial so that
+people can `git clone` and _`run`_ the code locally.
+
+I reached out to Daniel on Twitter
+asking if he would accept a Pull Request
+updating the post to latest version of Phoenix: <br />
+[![credit-tweet](https://user-images.githubusercontent.com/194400/35771850-32b1cfba-092b-11e8-9bbf-0e693016bb76.png)](https://twitter.com/nelsonic/status/959901100760498181) <br />
+If he replies I will _gladly_ create a PR.
+_Meanwhile_ this example will fill in the gaps
+and provide a more up-to-date example.
+
+<br />
+
+## Troubleshooting
+
+If you get "stuck", please open an issue describing the issue you are facing.
+
+TIL: app names in Phoneix _must_ be lowercase letters: <br />
+![lower-case-app-names](https://user-images.githubusercontent.com/194400/35360087-73d69d88-0154-11e8-9f47-d9a9333d1e6c.png)
+
+Works with lowercase:  <br />
+![second-time-lucky](https://user-images.githubusercontent.com/194400/35360183-c522063c-0154-11e8-994a-7516bc0e5c1e.png)
+
+### Running a Single Test
+
+To run a _single_ test while debugging, use the following syntax:
 ```sh
 mix test test/user/user_test.exs:9
 ```
