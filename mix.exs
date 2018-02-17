@@ -10,7 +10,10 @@ defmodule Encryption.Mixfile do
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
       start_permanent: Mix.env == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test,
+      "coveralls.post": :test, "coveralls.html": :test]
     ]
   end
 
@@ -40,7 +43,12 @@ defmodule Encryption.Mixfile do
       {:phoenix_html, "~> 2.10"},
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:gettext, "~> 0.11"},
-      {:cowboy, "~> 1.0"}
+      {:cowboy, "~> 1.0"},
+
+      # Development dependencies:
+      {:excoveralls, "~> 0.7.0", only: [:test, :dev]}, # tracking test coverage
+      {:dogma, "~> 0.1", only: [:test, :dev]}, # Elixir style
+      {:credo, "~> 0.8.6", only: [:dev, :test]}, # github.com/rrrene/credo
     ]
   end
 
