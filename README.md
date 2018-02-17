@@ -1,60 +1,93 @@
-<!-- # Phoenix Ecto Encryption Example -->
+# Phoenix Ecto Encryption Example
+
+![data-encrypted-cropped](https://user-images.githubusercontent.com/194400/36345569-f60382de-1424-11e8-93e9-74ed7eaceb71.jpg)
+
 
 ## Why?
 
 **Encrypting User/Personal data** stored by your Web App is ***essential***
 for security/privacy.
 
->
-
+> If your app offers any personalised content or interaction
+that depends on "login", it is storing personal data (_by definition_).
+You might be tempted to think that the data is "safe" in the database,
+but it's _not_. There is an entire ("dark") army/industry of people
+([_cybercriminals_](https://en.wikipedia.org/wiki/Cybercrime))
+who target websites/apps attempting to "steal" data.
+Don't let the people using your app be the victims of identity theft,
+protect their personal data! (_it's both the "**right**" **thing to do** and the **law**_)
 
 ## What?
 
 This tutorial/example is intended as a _comprehensive_ answer
 to the question:
 
-> ["_**How to Encrypt/Decrypt Sensitive Data** in **Elixir** Before Inserting it Into the Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
-
-
+> ["_**How to Encrypt/Decrypt Sensitive Data** in `Elixir` **Before** Inserting (Saving) it Into the Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
 
 
 ## Who?
 
 Any developer (_or technical decision maker / "application architect"_)
 who takes personal data protection seriously
-and wants a robust way of encrypting data `before` storing it.
+and wants a robust/reliable and "transparent" way
+of encrypting data `before` storing it.
+
+### Prerequisites?
+
++ Basic Elixir syntax knowledge.
++ Basic understanding of **Ecto**
+(_the module used to interface with databases in elixir/phoenix_)
+
+> If you are totally new to (_or "rusty" on_) Elixir, Phoenix or Ecto,
+we recommend going through our Phoenix Chat Example (Beginner's Tutorial):
+https://github.com/nelsonic/phoenix-chat-example
+
+You will _not_ need any "Advanced" mathematical knowledge;
+we are _not_ "inventing" our own encryption.
+We use existing well-tested/respected algorithms.
+Specifically:
++ The Advanced Encryption Standard (AES) for _encryption_: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
++ Secure Hash Algorithm (SHA) for hashing data:
+https://en.wikipedia.org/wiki/Secure_Hash_Algorithms
+
+You do _not_ need to _understand_ the how either of the algorithms work,
+merely to know the _difference_ between
+[encryption](https://en.wikipedia.org/wiki/Encryption)
+vs.
+[hashing](https://en.wikipedia.org/wiki/Hash_function)
+and
+[plaintext](https://en.wikipedia.org/wiki/Plaintext)
+vs.
+[ciphertext](https://en.wikipedia.org/wiki/Ciphertext).
+
+
+
+JBUY599
 
 
 ## How?
 
+These are "step-by-step" instructions intended to be followed
+by someone who is
 
-Creat a new Phoenix app called "Encryption":
+
+Creat a `new` Phoenix application called "encryption":
 ```sh
 mix phx.new encryption
 ```
 
-> Since I created the new phoenix app inside an existing git directory, <br />
-  I had to move the files into the "current working directory"
-  move files:
-  ```sh
-  mv encryption/* ./
-  mv encryption/.gitignore ./
-  ```
-  If you are creating the project from scratch without a git repo, <br />
-  you can skip this step. <br />
-  _Instead_ simply **change** into the `encryption` directory: <br />
-  ```sh
-  cd encryption
-  ```
+**Change** into the `encryption` directory: <br />
+```sh
+cd encryption
+```
 
-
-Create the database:
+Given that our goal is to store encrypted data in a database,
+  we must **Create** the database:
 ```sh
 mix ecto.create
 ```
 
-![mix-ecto-create](https://user-images.githubusercontent.com/194400/35360428-914eb84a-0155-11e8-8395-1e352223f509.png)
-
+![mix-ecto-create](https://user-images.githubusercontent.com/194400/35360428-914eb84a-0155-11e8-8395-1e352223f509.png) <br />
 
 Create the `user` schema using generator command:
 ```
@@ -64,7 +97,12 @@ mix phx.gen.schema User users name:binary email:binary email_hash:binary
 ![phx.gen.schema](https://user-images.githubusercontent.com/194400/35360796-dc4507cc-0156-11e8-9cf1-7f4005e5ed34.png)
 
 
-Create the tables in the DB:
+The _reason_ we are creating the fields as `:binary`
+
+see: https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
+
+
+Create the tables in the Database:
 ```sh
 mix ecto.migrate
 ```
