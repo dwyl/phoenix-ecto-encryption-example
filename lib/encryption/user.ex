@@ -3,7 +3,7 @@ defmodule Encryption.User do
   import Ecto.Changeset
 
   alias Encryption.{User, Repo}
-  alias Encryption.HashField, as: Hash
+  # alias Encryption.HashField, as: Hash # not using!
   alias Encryption.EncryptedField, as: Encrypt
 
   schema "users" do

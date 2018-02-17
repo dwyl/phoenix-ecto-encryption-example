@@ -3,6 +3,7 @@
 ![data-encrypted-cropped](https://user-images.githubusercontent.com/194400/36345569-f60382de-1424-11e8-93e9-74ed7eaceb71.jpg)
 
 
+
 ## Why?
 
 **Encrypting User/Personal data** stored by your Web App is ***essential***
@@ -27,18 +28,20 @@ to the question:
 
 ## Who?
 
-Any developer (_or technical decision maker / "application architect"_)
+This example/tutorial is for _any_ developer
+(_or technical decision maker / "application architect"_)
 who takes personal data protection seriously
 and wants a robust/reliable and "transparent" way
 of encrypting data `before` storing it.
 
 ### Prerequisites?
 
-+ Basic Elixir syntax knowledge.
-+ Basic understanding of **Ecto**
++ Basic **`Elixir`** syntax knowledge.
++ Familiarity with the **`Phoenix`** framework.
++ Basic understanding of **`Ecto`**
 (_the module used to interface with databases in elixir/phoenix_)
 
-> If you are totally new to (_or "rusty" on_) Elixir, Phoenix or Ecto,
+> If you are totally `new` to (_or "rusty" on_) Elixir, Phoenix or Ecto,
 we recommend going through our Phoenix Chat Example (Beginner's Tutorial):
 https://github.com/nelsonic/phoenix-chat-example
 
@@ -62,7 +65,7 @@ vs.
 
 
 
-JBUY599
+
 
 
 ## How?
@@ -111,7 +114,7 @@ mix ecto.migrate
 
 
 
-<br />
+<br /> <br />
 
 ## Credits
 
@@ -122,7 +125,8 @@ Daniel's post is for [Phoenix `v0.14.0`](https://github.com/danielberkompas/dani
 therefore a few changes/updates are required.
 e.g: There are no more "**Models**" in Phoenix 1.3 or Ecto callbacks.
 
-_Also_ his post only includes the "sample code" and is not a _complete_ example.
+_Also_ his post only includes the "sample code"
+and is _not_ a _complete_ example. <br />
 Which means anyone following the post needs to _manually_ copy-paste the code...
 We prefer to include the _complete_ "end state" of any tutorial so that
 people can `git clone` and _`run`_ the code locally.
@@ -135,7 +139,7 @@ If he replies I will _gladly_ create a PR.
 _Meanwhile_ this example will fill in the gaps
 and provide a more up-to-date example.
 
-<br />
+<br /> <br />
 
 ## Troubleshooting
 
