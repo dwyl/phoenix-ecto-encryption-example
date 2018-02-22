@@ -34,12 +34,8 @@ defmodule Encryption.AESTest do
   test "can decrypt_gcm a value" do
     keys = Application.get_env(:encryption, Encryption.AES)[:keys]
     key_id = Enum.count(keys) - 1
-    IO.inspect key_id, label: "key_id"
     ciphertext = AES.encrypt("hello", key_id)
-    IO.inspect ciphertext, label: "ciphertext"
-    # plaintext = "hello" |> AES.encrypt_gcm |> AES.decrypt_gcm(key_id)
     plaintext = AES.decrypt(ciphertext, key_id)
-    IO.inspect plaintext, label: "plaintext"
     assert plaintext == "hello"
   end
 

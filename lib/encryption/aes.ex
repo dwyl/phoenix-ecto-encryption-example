@@ -6,28 +6,6 @@ defmodule Encryption.AES do
   """
   @aad "AES256GCM"
 
-  defp get_key do
-    keys = Application.get_env(:encryption, Encryption.AES)[:keys]
-    count = Enum.count(keys) - 1
-    get_key(count)
-  end
-
-  # @doc """
-  # get_key - Get encryption key from list of keys.
-  # if `key_id` is *not* supplied as argument,
-  # then the default *latest* encryption key will be returned.
-  # ## Parameters
-  # - `key_id`: the index of AES encryption key used to encrypt the ciphertext
-  # ## Example
-  #     iex> Encryption.AES.get_key
-  #     <<13, 217, 61, 143, 87, 215, 35, 162, 183, 151, 179, 205, 37, 148>>
-  # """ # doc commented out because https://stackoverflow.com/q/45171024/1148249
-  @spec get_key(number) :: number
-  defp get_key(key_id) do
-    keys = Application.get_env(:encryption, Encryption.AES)[:keys]
-    Enum.at(keys, key_id)
-  end
-
   @doc """
   Encrypt Using AES Galois/Counter Mode (GCM)
   https://en.wikipedia.org/wiki/Galois/Counter_Mode
@@ -47,28 +25,18 @@ defmodule Encryption.AES do
   """
   @spec encrypt(any, number) :: {String.t, number}
   def encrypt(plaintext, key_id) do
-    IO.inspect plaintext, label: "plaintext"
     iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
-    IO.inspect iv, label: "iv"
     key = get_key(key_id)
     {ciphertext, tag} =
       :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
-
-    IO.inspect tag, label: "tag"
-    # {:ok, Encoder.encode(tag) <> iv <> ciphertag <> ciphertext}
     iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
   end
 
   def encrypt(plaintext) do
-    IO.inspect plaintext, label: "plaintext"
     iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
-    IO.inspect iv, label: "iv"
     key = get_key()
     {ciphertext, tag} =
       :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
-
-    IO.inspect tag, label: "tag"
-    # {:ok, Encoder.encode(tag) <> iv <> ciphertag <> ciphertext}
     iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
   end
 
@@ -86,12 +54,6 @@ defmodule Encryption.AES do
   @spec decrypt(String.t, number) :: {String.t, number}
   def decrypt(ciphertext, key_id) do
     <<iv::binary-16, tag::binary-16, ciphertext::binary>> = ciphertext
-
-    IO.inspect key_id, label: "key_id"
-    IO.inspect iv, label: "iv2"
-    IO.inspect tag, label: "tag2"
-    IO.inspect ciphertext, label: "ciphertext"
-
     :crypto.block_decrypt(
       :aes_gcm,
       get_key(key_id),
@@ -104,5 +66,27 @@ defmodule Encryption.AES do
   def decrypt(ciphertext) do
     <<iv::binary-16, tag::binary-16, ciphertext::binary>> = ciphertext
     :crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})
+  end
+
+  # @doc """
+  # get_key - Get encryption key from list of keys.
+  # if `key_id` is *not* supplied as argument,
+  # then the default *latest* encryption key will be returned.
+  # ## Parameters
+  # - `key_id`: the index of AES encryption key used to encrypt the ciphertext
+  # ## Example
+  #     iex> Encryption.AES.get_key
+  #     <<13, 217, 61, 143, 87, 215, 35, 162, 183, 151, 179, 205, 37, 148>>
+  # """ # doc commented out because https://stackoverflow.com/q/45171024/1148249
+  @spec get_key(number) :: number
+  defp get_key(key_id) do
+    keys = Application.get_env(:encryption, Encryption.AES)[:keys]
+    Enum.at(keys, key_id)
+  end
+
+  defp get_key do
+    keys = Application.get_env(:encryption, Encryption.AES)[:keys]
+    count = Enum.count(keys) - 1
+    get_key(count)
   end
 end
