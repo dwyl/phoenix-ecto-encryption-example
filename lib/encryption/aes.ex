@@ -1,15 +1,17 @@
 defmodule Encryption.AES do
   @moduledoc """
-  Encrypt values with AES in CTR mode, using a random Initialisation Vector
-  for each encryption, this makes "bruteforce" decryption much more difficult.
+  Encrypt values with AES in Galois/Counter Mode (GCM)
+  https://en.wikipedia.org/wiki/Galois/Counter_Mode
+  using a random Initialisation Vector for each encryption,
+  this makes "bruteforce" decryption much more difficult.
   See `encrypt/1` and `decrypt/1` for more details.
   """
-  @aad "AES256GCM"
+  @aad "AES256GCM" # Use AES 256 Bit Keys for Encryption.
 
   @doc """
   Encrypt Using AES Galois/Counter Mode (GCM)
   https://en.wikipedia.org/wiki/Galois/Counter_Mode
-  Uses a random IV for each call, and prepends the IV to the
+  Uses a random IV for each call, and prepends the IV and Tag to the
   ciphertext.  This means that `encrypt/1` will never return the same ciphertext
   for the same value. This makes "cracking" (bruteforce decryption) much harder!
   ## Parameters
@@ -41,8 +43,7 @@ defmodule Encryption.AES do
   end
 
   @doc """
-  Decrypt a binary using GCM
-
+  Decrypt a binary using GCM.
   ## Parameters
   - `ciphertext`: a binary to decrypt, assuming that the first 16 bytes of the
     binary are the IV to use for decryption.

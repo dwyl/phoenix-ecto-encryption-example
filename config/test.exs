@@ -20,3 +20,7 @@ config :encryption, Encryption.Repo,
 
 config :encryption, Encryption.AES,
   key: :base64.decode("vA/K/7K6Z3obnTxlPx6fDuy/tiPj4FS7dDtUpfvRbG4=")
+
+config :argon2_elixir,
+  t_cost: 1,
+  m_cost: 8

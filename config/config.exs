@@ -47,3 +47,6 @@ config :encryption, Encryption.AES,
     |> String.replace("'", "")  # remove single-quotes around key list in .env
     |> String.split(",")        # split the CSV list of keys
     |> Enum.map(fn key -> :base64.decode(key) end) # decode the key.
+
+config :argon2_elixir,
+  argon2_type: 2

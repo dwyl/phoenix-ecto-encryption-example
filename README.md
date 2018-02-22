@@ -9,32 +9,45 @@
 **Encrypting User/Personal data** stored by your Web App is ***essential***
 for security/privacy.
 
-> If your app offers any personalised content or interaction
-that depends on "login", it is storing personal data (_by definition_).
-You might be tempted to think that the data is "safe" in the database,
-but it's _not_. There is an entire ("dark") army/industry of people
+> If your app offers any **personalised content** or interaction
+that depends on "**login**", it is **_storing_ personal data**
+(_by definition_).
+You might be tempted to think that
+the data is "safe" in the database, but it's _not_.
+There is an entire ("dark") army/industry of people
 ([_cybercriminals_](https://en.wikipedia.org/wiki/Cybercrime))
 who target websites/apps attempting to "steal" data.
-Don't let the people using your app be the victims of identity theft,
-protect their personal data! (_it's both the "**right**" **thing to do** and the **law**_)
+All the time you spend _building_ your app,
+they spend trying to "_break_" apps like yours.  
+Don't let the people using your app
+be the victims of identity theft,
+protect their personal data!
+(_it's both the "**right**" **thing to do** and the
+ [**law**](https://github.com/dwyl/learn-security/#gdpr) ..._)
 
 ## What?
 
 This tutorial/example is intended as a _comprehensive_ answer
 to the question:
 
-> ["_**How to Encrypt/Decrypt Sensitive Data** in `Elixir` **Before** Inserting (Saving) it Into the Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
+> ["_**How to Encrypt/Decrypt Sensitive Data** in `Elixir` **Before** Inserting (Saving) it into the Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
 
-+ We are using the Counter (CTR) Mode Block Cipher for encryption
-see: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation
-recommended by Niels Ferguson and Bruce Schneier
-(_both authorities on security and cryptography_)
+### Technical Overview
+
++
++ We are using the Galois/Counter Mode for symmetric key cryptographic block ciphers: https://en.wikipedia.org/wiki/Galois/Counter_Mode
+recommended by Matthew Green, Niels Ferguson and Bruce Schneier
+(_authorities on security and cryptography_)
 + "Under the hood" we are using Erlang's
 [crypto](http://erlang.org/doc/man/crypto.html) module
-_specifically_ AES with a 256 bit key (_the same as Google's KMS service_)
-see: http://erlang.org/doc/man/crypto.html#stream_init-3
+_specifically_ AES with a **256 bit key** (_the same as Google's KMS service_)
+see: http://erlang.org/doc/man/crypto.html#block_encrypt-4
++ Password Hashing is done with **Bcrypt**:
 
-We are _not_ "re-inventing encryption" or using our "own algorithm"
+specifically: https://github.com/riverrun/bcrypt_elixir
+
+We are _not_ "re-inventing encryption"
+or using our "own algorithm"
 _everyone_ knows that's a "_**bad** idea_":
 https://security.stackexchange.com/questions/18197/why-shouldnt-we-roll-our-own
 <br />
@@ -58,8 +71,10 @@ and _decrypting_ when it is queried.
 + Basic understanding of **`Ecto`**
 (_the module used to interface with databases in elixir/phoenix_)
 
-> If you are totally `new` to (_or "rusty" on_) Elixir, Phoenix or Ecto,
-we recommend going through our Phoenix Chat Example (Beginner's Tutorial):
+> If you are totally `new` to (_or "rusty" on_)
+Elixir, Phoenix or Ecto,
+we recommend going through our Phoenix Chat Example
+(Beginner's Tutorial):
 https://github.com/dwyl/phoenix-chat-example
 
 You will _not_ need any "Advanced" mathematical knowledge;
@@ -67,8 +82,10 @@ we are _not_ "inventing" our own encryption. <br />
 We use existing well-tested/respected algorithms.
 Specifically:
 + The Advanced Encryption Standard (AES) for _encryption_: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
-+ Secure Hash Algorithm (SHA) for hashing data:
++ Secure Hash Algorithm (SHA) for hashing data
+(_for fast lookups_):
 https://en.wikipedia.org/wiki/Secure_Hash_Algorithms
++ https://en.wikipedia.org/wiki/Bcrypt
 
 You do _not_ need to _understand_
 how the encryption/hashing algorithms work, <br />
@@ -449,13 +466,13 @@ https://crypto.stackexchange.com/questions/3615/what-is-the-effect-of-the-differ
 + How is decryption done in AES CTR mode?: https://crypto.stackexchange.com/questions/34918/how-is-decryption-done-in-aes-ctr-mode
 + Block Cipher Counter (CTR) Mode:
 https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_.28CTR.29
-+ Is AES-256 weaker than 192 and 128 bit versions?
++ Is AES-256 _weaker_ than 192 and 128 bit versions?
 https://crypto.stackexchange.com/questions/5118/is-aes-256-weaker-than-192-and-128-bit-versions
 + What are the practical differences between 256-bit, 192-bit, and 128-bit AES encryption?
 https://crypto.stackexchange.com/questions/20/what-are-the-practical-differences-between-256-bit-192-bit-and-128-bit-aes-enc
-+ How to choose an Authenticated Encryption mode
++ **How to Choose** an **Authenticated Encryption mode**
 (_by Matthew Green cryptography professor at Johns Hopkins University_):
-https://blog.cryptographyengineering.com/2012/05/19/how-to-choose-authenticated-encryption/
+https://blog.cryptographyengineering.com/2012/05/19/how-to-choose-authenticated-encryption
 + How to choose an AES encryption mode (CBC ECB CTR OCB CFB)? (v. long answers, but good comparison!)
 https://stackoverflow.com/questions/1220751/how-to-choose-an-aes-encryption-mode-cbc-ecb-ctr-ocb-cfb
 + AES GCM vs CTR+HMAC tradeoffs:
@@ -472,11 +489,26 @@ https://stackoverflow.com/questions/12788799/how-to-generate-a-random-alphanumer
 + Do security experts recommend bcrypt? https://security.stackexchange.com/questions/4781/do-any-security-experts-recommend-bcrypt-for-password-storage/6415#6415
 + Hacker News discussion thread "***Don't use `bcrypt`***":
 https://news.ycombinator.com/item?id=3724560
++ Storing Passwords in a Highly Parallelized World:
+https://hynek.me/articles/storing-passwords
++ Password hashing security of argon2 versus bcrypt/PBKDF2?
+https://crypto.stackexchange.com/questions/30785/password-hashing-security-of-argon2-versus-bcrypt-pbkdf2
++ The memory-hard Argon2 password hash function (ietf proposal):
+https://tools.ietf.org/id/draft-irtf-cfrg-argon2-03.html
+unlikely to be a "standard" any time soon...
++ Erlang Dirty Scheduler Overhead:
+https://medium.com/@jlouis666/erlang-dirty-scheduler-overhead-6e1219dcc7
++ Erlang Scheduler Details and Why They Matter:
+https://news.ycombinator.com/item?id=11064763
++ Why use argon2i or argon2d if argon2id exists?
+https://crypto.stackexchange.com/questions/48935/why-use-argon2i-or-argon2d-if-argon2id-exists
 
 
 ## Troubleshooting
 
-If _you_ get "stuck", please open an issue describing the issue you are facing.
+If _you_ get "stuck", please open an issue on GitHub:
+https://github.com/nelsonic/phoenix-ecto-encryption-example/issues
+describing the issue you are facing with as much detail as you can.
 
 TIL: app names in Phoneix _must_ be lowercase letters: <br />
 ![lower-case-app-names](https://user-images.githubusercontent.com/194400/35360087-73d69d88-0154-11e8-9f47-d9a9333d1e6c.png)

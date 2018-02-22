@@ -4,8 +4,8 @@ defmodule Encryption.Mixfile do
   def project do
     [
       app: :encryption,
-      version: "0.0.1",
-      elixir: "~> 1.4",
+      version: "1.0.0",
+      elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
       start_permanent: Mix.env == :prod,
@@ -35,7 +35,7 @@ defmodule Encryption.Mixfile do
   #
   # Type `mix help deps` for examples and options.
   defp deps do
-    [
+    [ # Default Phoenix Dependencies
       {:phoenix, "~> 1.3.0"},
       {:phoenix_pubsub, "~> 1.0"},
       {:phoenix_ecto, "~> 3.2"},
@@ -44,8 +44,9 @@ defmodule Encryption.Mixfile do
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
-      {:comeonin, "~> 4.0"},
 
+      {:bcrypt_elixir, "~> 1.0.6"}, # securely hashing & comparing passwords
+      {:argon2_elixir, "~> 1.2"},
       # Development dependencies:
       {:excoveralls, "~> 0.7.0", only: [:test, :dev]}, # tracking test coverage
       {:dogma, "~> 0.1", only: [:test, :dev]}, # Elixir style
