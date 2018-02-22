@@ -17,4 +17,8 @@ defmodule Encryption.EncryptedField do
   def load(value, key_id) do
     {:ok, AES.decrypt(value, key_id)}
   end
+
+  def load(value) do
+    {:ok, AES.decrypt(value)}
+  end
 end

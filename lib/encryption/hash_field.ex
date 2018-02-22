@@ -16,6 +16,10 @@ defmodule Encryption.HashField do
   end
 
   def hash(value) do
-    :crypto.hash(:sha256, value)
+    :crypto.hash(:sha256, value <> get_salt())
+  end
+
+  defp get_salt do
+    Application.get_env(:encryption, EncryptionWeb.Endpoint)[:secret_key_base]
   end
 end

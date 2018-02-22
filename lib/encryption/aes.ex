@@ -10,8 +10,8 @@ defmodule Encryption.AES do
   ciphertext.  This means that `encrypt/1` will never return the same ciphertext
   for the same value. This makes "cracking" (bruteforce decryption) much harder!
   ## Parameters
-  - `plaintext`: Any type. Will be converted to a string using `to_string`
-    before encryption.
+  - `plaintext`: Accepts any data type as all values are converted to a String
+    using `to_string` before encryption.
   ## Examples
       iex> Encryption.AES.encrypt("test") != Encryption.AES.encrypt("test")
       true
@@ -44,11 +44,24 @@ defmodule Encryption.AES do
   @spec decrypt(String.t, number) :: {String.t, number}
   def decrypt(ciphertext, key_id) do
     <<iv::binary-16, ciphertext::binary>> = ciphertext # split iv & ciphertext
+    # get encryption key based on key_id & Initialise crypto stream:
     state = :crypto.stream_init(:aes_ctr, get_key(key_id), iv)
     # perform decryption
     {_state, plaintext} = :crypto.stream_decrypt(state, ciphertext)
     plaintext # "return" just the plaintext
   end
+
+  # as above but *asumes* default encryption key is used.
+  def decrypt(ciphertext) do
+    <<iv::binary-16, ciphertext::binary>> = ciphertext # split iv & ciphertext
+    # get encryption key based on key_id & Initialise crypto stream:
+    state = :crypto.stream_init(:aes_ctr, get_key(), iv)
+    # perform decryption
+    {_state, plaintext} = :crypto.stream_decrypt(state, ciphertext)
+    plaintext # "return" just the plaintext
+  end
+
+
 
   defp get_key do
     keys = Application.get_env(:encryption, Encryption.AES)[:keys]
@@ -56,6 +69,17 @@ defmodule Encryption.AES do
     get_key(count)
   end
 
+  # @doc """
+  # get_key - Get encryption key from list of keys.
+  # if `key_id` is *not* supplied as argument,
+  # then the default *latest* encryption key will be returned.
+  # ## Parameters
+  # - `key_id`: the index of AES encryption key used to encrypt the ciphertext
+  # ## Example
+  #     iex> Encryption.AES.get_key
+  #     <<13, 217, 61, 143, 87, 215, 35, 162, 183, 151, 179, 205, 37, 148>>
+  # """ # doc commented out because https://stackoverflow.com/q/45171024/1148249
+  @spec get_key(number) :: number
   defp get_key(key_id) do
     keys = Application.get_env(:encryption, Encryption.AES)[:keys]
     Enum.at(keys, key_id)

@@ -7,10 +7,10 @@ defmodule Encryption.User do
 
 
   schema "users" do
-    field :email, :binary
+    field :email, Encryption.EncryptedField # :binary
     field :email_hash, :binary
     field :key_id, :integer
-    field :name, :binary
+    field :name, Encryption.EncryptedField # :binary
     field :password_hash, :binary
 
     timestamps()
@@ -20,6 +20,8 @@ defmodule Encryption.User do
   Creates a changeset based on the user and attrs
   """
   def changeset(%User{} = user, attrs \\ %{}) do
+    # IO.inspect attrs, label: "attrs"
+    # IO.inspect user, label: "user"
     user
     |> Map.merge(attrs)
     |> cast(attrs, [:name, :email])
@@ -29,12 +31,30 @@ defmodule Encryption.User do
 
   end
 
+  defp prepare_fields(changeset, schema) do
+
+  end
+
+
+
   defp encrypt_fields(changeset) do
+
+    # User.__schema__(:fields)
+    # # |> IO.inspect
+    # |> Enum.each(fn field ->
+    #   IO.inspect field, label: field
+    #   User.__schema__(:type, field)
+    #   |> IO.inspect
+    # end)
+    #
+    # IO.inspect changeset, lable: "changeset"
+
     case changeset.valid? do
       true ->
         {:ok, encrypted_email} = Encrypt.dump(changeset.data.email)
         {:ok, encrypted_name} = Encrypt.dump(changeset.data.name)
         changeset
+        # |> IO.inspect
         |> put_change(:email, encrypted_email)
         |> put_change(:name, encrypted_name)
       _ ->
@@ -45,11 +65,9 @@ defmodule Encryption.User do
   defp set_hashed_fields(changeset) do
     case changeset.valid? do
       true ->
-        changeset
-        |> put_change(:email_hash, Hash.hash(changeset.data.email))
-
+        put_change(changeset, :email_hash, Hash.hash(changeset.data.email))
       _ ->
-        changeset
+        changeset # return unmodified
     end
   end
 

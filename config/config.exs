@@ -4,7 +4,7 @@
 # This configuration file is loaded before any dependency and
 # is restricted to this project.
 use Mix.Config
-System.cmd("whoami", [])
+
 # General application configuration
 config :encryption,
   ecto_repos: [Encryption.Repo]
@@ -23,27 +23,27 @@ config :logger, :console,
   metadata: [:request_id]
 
 # Import environment specific config. This must remain at the bottom
-# of this file so it overrides the configuration defined above.
+# of this file so it over rides the configuration defined above.
 import_config "#{Mix.env}.exs"
 
 # run shell command to "source .env" to load the environment variables.
-:os.cmd('source .env')
-:os.cmd(:"source .env")
-System.cwd() |> IO.inspect(label: "cwd")
-# System.cmd("source", [".env"])
-# :os.cmd("source .env")
-"source .env" |> String.to_charlist |> :os.cmd |> IO.inspect
-
-# Map.fetch!(System.get_env(), "HELLO") |> IO.inspect
-
-File.stream!("./.env")
-  |> Stream.map(&String.trim_trailing/1) # remove excess whitespace
-  |> Enum.each(fn line -> line           # loop through each line
-    |> String.replace("export ", "")     # remove "export" from line
-    |> String.split("=")                 # split on the "=" (equals sign)
-    |> Enum.reduce(fn(value, key) ->
-      System.put_env(key, value)         # set each environment variable
+try do                                     # wrap in "try do"
+  File.stream!("./.env")                   # in case .env file does not exist.
+    |> Stream.map(&String.trim_trailing/1) # remove excess whitespace
+    |> Enum.each(fn line -> line           # loop through each line
+      |> String.replace("export ", "")     # remove "export" from line
+      |> String.split("=", parts: 2)       # split on *first* "=" (equals sign)
+      |> Enum.reduce(fn(value, key) ->     # stackoverflow.com/q/33055834/1148249
+        System.put_env(key, value)         # set each environment variable
+      end)
     end)
-  end)
+rescue
+  _ -> IO.puts "no .env file found!"
+end
 
-System.get_env() |> IO.inspect
+# Set the Encryption Keys as an "Application Variable" accessible in aes.ex
+config :encryption, Encryption.AES,
+  keys: System.get_env("ENCRYPTION_KEYS") # get the ENCRYPTION_KEYS env variable
+    |> String.replace("'", "")  # remove single-quotes around key list in .env
+    |> String.split(",")        # split the CSV list of keys
+    |> Enum.map(fn key -> :base64.decode(key) end) # decode the key.
