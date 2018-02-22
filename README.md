@@ -25,6 +25,15 @@ to the question:
 
 > ["_**How to Encrypt/Decrypt Sensitive Data** in `Elixir` **Before** Inserting (Saving) it Into the Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
 
++ We are using the Counter (CTR) Mode Block Cipher for encryption
+see: https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation
+recommended by Niels Ferguson and Bruce Schneier
+(_both authorities on security and cryptography_)
++ "Under the hood" we are using Erlang's
+[crypto](http://erlang.org/doc/man/crypto.html) module
+_specifically_ AES with a 256 bit key (_the same as Google's KMS service_)
+see: http://erlang.org/doc/man/crypto.html#stream_init-3
+
 
 ## Who?
 
@@ -70,13 +79,53 @@ vs.
 
 ## How?
 
-These are "step-by-step" instructions intended to be followed
-by someone who is
+These are "step-by-step" instructions,
+don't skip any steps.
 
+### 1. Creat the `encryption` App
 
-Creat a `new` Phoenix application called "encryption":
+**Create** a `new` Phoenix application called "encryption":
 ```sh
 mix phx.new encryption
+```
+When you see `Fetch and install dependencies? [Yn]`, type `y` and press the `[Enter]` key
+to download and install the dependencies.
+You should see:
+
+```sh
+* running mix deps.get
+* running cd assets && npm install && node node_modules/brunch/bin/brunch build
+* running mix deps.compile
+
+We are all set! Go into your application by running:
+
+    $ cd encryption
+
+Then configure your database in config/dev.exs and run:
+
+    $ mix ecto.create
+
+Start your Phoenix app with:
+
+    $ mix phx.server
+
+You can also run your app inside IEx (Interactive Elixir) as:
+
+    $ iex -S mix phx.server
+```
+Follow the first two instruction to change into the project directory:
+```
+cd ecryption
+```
+then **Create** the database using the command:
+```
+mix ecto.create
+```
+You should see the following output:
+```
+Compiling 13 files (.ex)
+Generated encryption app
+The database for Encryption.Repo has been created
 ```
 
 **Change** into the `encryption` directory: <br />
@@ -84,16 +133,25 @@ mix phx.new encryption
 cd encryption
 ```
 
-Given that our goal is to store encrypted data in a database,
-  we must **Create** the database:
-```sh
-mix ecto.create
-```
 
-![mix-ecto-create](https://user-images.githubusercontent.com/194400/35360428-914eb84a-0155-11e8-8395-1e352223f509.png) <br />
+
+### 2. Create the `user` Schema (_Database Table_)
+
+In our _hypothetical_ `user` database table,
+we are only going to store 3 pieces of data.
++ `name`: the person's name (_encrypted_)
++ `email`: their email address (_encrypted_)
++ `password_hash`: the hashed password (_so they can login_)
+
+Note: in _addition_ to these 3 "_primary_" fields
+we need _**two** more fields_:
++ `email_hash`: so we check if an email address is in the database
+_without_ having to _decrypt_ the email(s) stored in the DB.
++ `key_id`: the id of the encryption key used to encrypt the data
+stored in the row. (_for "key rotation"_)
 
 Create the `user` schema using generator command:
-```
+```sh
 mix phx.gen.schema User users name:binary email:binary email_hash:binary
 ```
 
@@ -101,16 +159,19 @@ mix phx.gen.schema User users name:binary email:binary email_hash:binary
 
 
 The _reason_ we are creating the fields as `:binary`
+is that the _data_ stored in them will be _encrypted_
+and `:binary` is the most efficient type.
 
 see: https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
 
 
-Create the tables in the Database:
+Run the "migration" task to create the tables in the Database:
 ```sh
 mix ecto.migrate
 ```
 
 
+### 3. ...
 
 
 
@@ -118,7 +179,8 @@ mix ecto.migrate
 
 ## Credits
 
-_All_ Credit for this example goes to [@danielberkompas](https://github.com/danielberkompas) for his _superb_ post:
+Credit for this example goes to [@danielberkompas](https://github.com/danielberkompas)
+for his post:
 http://blog.danielberkompas.com/elixir/security/2015/07/03/encrypting-data-with-ecto.html <br />
 
 Daniel's post is for [Phoenix `v0.14.0`](https://github.com/danielberkompas/danielberkompas.github.io/blob/c6eb249e5019e782e891bfeb591bc75f084fd97c/_posts/2015-07-03-encrypting-data-with-ecto.md) which is quite "old" now ...
