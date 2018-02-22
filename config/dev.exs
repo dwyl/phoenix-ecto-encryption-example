@@ -59,3 +59,6 @@ config :encryption, Encryption.Repo,
 
 config :encryption, Encryption.AES,
   key: :base64.decode("vA/K/7K6Z3obnTxlPx6fDuy/tiPj4FS7dDtUpfvRbG4=")
+
+config :encryption, Encryption.KEY,
+  keys: [1, 2, 3]
