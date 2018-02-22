@@ -31,9 +31,9 @@ defmodule Encryption.User do
 
   end
 
-  defp prepare_fields(changeset, schema) do
-
-  end
+  # defp prepare_fields(changeset, schema) do
+  #
+  # end
 
 
 

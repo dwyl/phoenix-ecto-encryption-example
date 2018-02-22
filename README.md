@@ -295,7 +295,7 @@ it needs to be know how to "read" the encryption keys.
 e need to "export" an Environment Variable
 containing a (_comma-separated_) list of (_one or more_)
 encryption key(s).
-_Copy-paste_ (_and run_) the following command into your terminal:
+_Copy-paste_ (_and run_) the following command in your terminal:
 
 ```elixir
 echo "export ENCRYPTION_KEYS='nMdayQpR0aoasLaq1g94FLba+A+wB44JLko47sVQXMg=,L+ZVX8iheoqgqb22mUpATmMDsvVGtafoAeb0KN5uWf0='" >> .env && echo ".env" >> .gitignore
@@ -461,6 +461,8 @@ https://stackoverflow.com/questions/1220751/how-to-choose-an-aes-encryption-mode
 + AES GCM vs CTR+HMAC tradeoffs:
 https://crypto.stackexchange.com/questions/14747/gcm-vs-ctrhmac-tradeoffs
 + Galois/Counter Mode for symmetric key cryptographic block ciphers: https://en.wikipedia.org/wiki/Galois/Counter_Mode
++ Ciphertext and tag size and IV transmission with AES in GCM mode:
+https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
 + How long (in letters) are encryption keys for AES?
 https://security.stackexchange.com/questions/45318/how-long-in-letters-are-encryption-keys-for-aes
 + Generate random alphanumeric string (_used for AES keys_)
