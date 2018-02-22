@@ -84,7 +84,8 @@ defmodule Encryption.AES do
   end
 
   @doc """
-  Encrypt Using AES Galois/Counter Mode (GCM) https://en.wikipedia.org/wiki/Galois/Counter_Mode
+  Encrypt Using AES Galois/Counter Mode (GCM)
+  https://en.wikipedia.org/wiki/Galois/Counter_Mode
   Uses a random IV for each call, and prepends the IV to the
   ciphertext.  This means that `encrypt/1` will never return the same ciphertext
   for the same value. This makes "cracking" (bruteforce decryption) much harder!
@@ -103,9 +104,22 @@ defmodule Encryption.AES do
     IO.inspect plaintext, label: "plaintext"
     iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
     IO.inspect iv, label: "iv"
-
+    key = get_key(key_id)
     {ciphertext, tag} =
-      :crypto.block_encrypt(:aes_gcm, get_key(key_id), iv, {@aad, plaintext, 16})
+      :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, plaintext, 16})
+
+    IO.inspect tag, label: "tag"
+    # {:ok, Encoder.encode(tag) <> iv <> ciphertag <> ciphertext}
+    iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
+  end
+
+  def encrypt_gcm(plaintext) do
+    IO.inspect plaintext, label: "plaintext"
+    iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
+    IO.inspect iv, label: "iv"
+    key = get_key()
+    {ciphertext, tag} =
+      :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, plaintext, 16})
 
     IO.inspect tag, label: "tag"
     # {:ok, Encoder.encode(tag) <> iv <> ciphertag <> ciphertext}
@@ -125,9 +139,9 @@ defmodule Encryption.AES do
   """
   @spec decrypt_gcm(String.t, number) :: {String.t, number}
   def decrypt_gcm(ciphertext, key_id) do
-    IO.inspect key_id, label: "key_id"
     <<iv::binary-16, tag::binary-16, ciphertext::binary>> = ciphertext
 
+    IO.inspect key_id, label: "key_id"
     IO.inspect iv, label: "iv2"
     IO.inspect tag, label: "tag2"
     IO.inspect ciphertext, label: "ciphertext"
@@ -138,5 +152,11 @@ defmodule Encryption.AES do
       iv,
       {@aad, ciphertext, tag}
     )
+  end
+
+  # as above but *asumes* `default` (latest) encryption key is used.
+  def decrypt_gcm(ciphertext) do
+    <<iv::binary-16, tag::binary-16, ciphertext::binary>> = ciphertext
+    :crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})
   end
 end

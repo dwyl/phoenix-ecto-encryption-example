@@ -37,4 +37,9 @@ defmodule Encryption.AESTest do
     IO.inspect plaintext, label: "plaintext"
     assert plaintext == "hello"
   end
+
+  test "can decrypt_gcm with default key" do
+    plaintext = "hello" |> AES.encrypt_gcm |> AES.decrypt_gcm()
+    assert plaintext == "hello"
+  end
 end
