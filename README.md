@@ -221,7 +221,7 @@ is quite simple; (_only 4 lines_):<br />
 ```elixir
 def encrypt(plaintext) do
   iv    = :crypto.strong_rand_bytes(16) # create random Initialization Vector
-  state = :crypto.stream_init(:aes_ctr, key(), iv) # Initialise crypto stream
+  state = :crypto.stream_init(:aes_ctr, get_key(), iv) # create crypto stream
   # peform the encryption:
   {_state, ciphertext} = :crypto.stream_encrypt(state, to_string(plaintext))
   iv <> ciphertext # "return" iv concatenated with the ciphertext
@@ -245,9 +245,10 @@ it accepts a "blob" of `ciphertext` (_which as you may recall_),
 has the IV prepended to it, and returns the original `plaintext`.
 
 ```elixir
-def decrypt(ciphertext) do
-  <<iv::binary-16, ciphertext::binary>> = ciphertext # split iv from ciphertext
-  state = :crypto.stream_init(:aes_ctr, key(), iv)   # create crypto stream
+def decrypt(ciphertext, key_id) do
+  <<iv::binary-16, ciphertext::binary>> = ciphertext # split iv & ciphertext
+  # get encryption key based on key_id & Initialise crypto stream:
+  state = :crypto.stream_init(:aes_ctr, get_key(key_id), iv)
   # perform decryption
   {_state, plaintext} = :crypto.stream_decrypt(state, ciphertext)
   plaintext # "return" just the plaintext
@@ -257,32 +258,64 @@ end
 The fist step (line) is to "split" the IV from the `ciphertext`
 using Elixir's binary pattern matching.
 
-To _understand_ the `<<iv::binary-16, ciphertext::binary>>`
-pattern matching line, read the following guide:
+> If you are unfamiliar with Elixir binary pattern matching syntax
+`<<iv::binary-16, ciphertext::binary>>`
+read the following guide:
 https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
 
-The `state = :crypto.stream_init(:aes_ctr, key(), iv)` line is the _same_
-as in the `encrypt` function, this should reassure you that it's the
-_same_ setup (init) to `decrypt` as it was to `encrypt`.
+The `state = :crypto.stream_init(:aes_ctr, get_key(key_id), iv)` line
+is the _same_ as in the `encrypt` function,
+_except_ that this time we initialise the stream with a _specific_ key
+(_the key that was used to `encrypt` the data originally_).
 
-Then `ciphertext` is decrypted using `stream_decrypt`
+`ciphertext` is decrypted using `stream_decrypt`
 http://erlang.org/doc/man/crypto.html#stream_decrypt-2
 
-Finally the original `plaintext` is returned.
-
+Finally the original `plaintext` is _returned_.
 
 
 
 #### 3.3 Get (Encryption) Key
 
-You will have noticed that both `encrypt` and `decrypt` functions
-call a `key()` function on the `state` line.
+You will have noticed that _both_ `encrypt` and `decrypt` functions
+call a `get_key()` function on the `state = ...` line.
 It is not a "built-in" function, we are about to define it!
+
+
+
+
+##### `ENCRYPTION_KEYS` Environment Variable
+
+In order for our `get_key` function to work,
+it needs to be know how to "read" the encryption keys.
+
+> _**Note**: we prefer to store our Encryption Keys as
+**Environment Variables**
+
+e need to "export" an Environment Variable
+containing a (_comma-separated_) list of (_one or more_)
+encryption key(s).
+_Copy-paste_ (_and run_) the following command into your terminal:
+
+```elixir
+echo "export ENCRYPTION_KEYS='nMdayQpR0aoasLaq1g94FLba+A+wB44JLko47sVQXMg=,L+ZVX8iheoqgqb22mUpATmMDsvVGtafoAeb0KN5uWf0='" >> .env && echo ".env" >> .gitignore
+```
+> For _now_, copy paste this command exactly as it is.<br />
+> When you are deploying your own App,
+> generate your own AES encryption key(s)
+> see below for how to do this.
+> _**Note**: there are **two** encryption keys separated by a comma.
+This is to **demonstrate** that it's **possible** to use **multiple keys**._
+
 
 ```elixir
 
 ```
 
+
+
+https://elixirschool.com/en/lessons/specifics/ets/
+https://elixir-lang.org/getting-started/mix-otp/ets.html
 
 
 
@@ -365,32 +398,45 @@ far less likely_) as `bcrypt` has a CPU-bound "work-factor".
 
 
 
+### How To Generate AES Encryption Keys?
 
-<br /> <br />
+Encryption keys should be the appropriate length (in bits)
+as required by the chosen algorithm.
 
-## Credits
+> An **AES 128-bit** key can be expressed
+as a hexadecimal string with 32 characters.
+It will require **24 characters** in **base64**.
 
-Credit for this example goes to [@danielberkompas](https://github.com/danielberkompas)
-for his post:
-https://blog.danielberkompas.com/2015/07/03/encrypting-data-with-ecto<br />
+> An **AES 256-bit** key can be expressed
+as a hexadecimal string with 64 characters.
+It will require **44 characters** in **base64**.
 
-Daniel's post is for [Phoenix `v0.14.0`](https://github.com/danielberkompas/danielberkompas.github.io/blob/c6eb249e5019e782e891bfeb591bc75f084fd97c/_posts/2015-07-03-encrypting-data-with-ecto.md) which is quite "old" now ...
-therefore a few changes/updates are required.
-e.g: There are no more "**Models**" in Phoenix 1.3 or Ecto callbacks.
+see: https://security.stackexchange.com/a/45334/117318
 
-_Also_ his post only includes the "sample code"
-and is _not_ a _complete_ example. <br />
-Which means anyone following the post needs to _manually_ copy-paste the code...
-We prefer to include the _complete_ "end state" of any tutorial so that
-people can `git clone` and _`run`_ the code locally.
+Open `iex` in your Terminal and paste the following line (_then press enter_)
+```elixir
+:crypto.strong_rand_bytes(32) |> :base64.encode
+```
 
-I reached out to Daniel on Twitter
-asking if he would accept a Pull Request
-updating the post to latest version of Phoenix: <br />
-[![credit-tweet](https://user-images.githubusercontent.com/194400/35771850-32b1cfba-092b-11e8-9bbf-0e693016bb76.png)](https://twitter.com/nelsonic/status/959901100760498181) <br />
-If he replies I will _gladly_ create a PR.
-_Meanwhile_ this example will fill in the gaps
-and provide a more up-to-date example.
+You should see terminal output similar to the following:
+
+![elixir-generate-encryption-key](https://user-images.githubusercontent.com/194400/38561017-dd93d186-3cce-11e8-91cd-c70f920ac79a.png)
+
+We generated 3 keys for demonstration purposes:
++ "h6pUk0ZccS0pYsibHZZ4Cd+PRO339rMA7sMz7FnmcGs="
++ "nMd/yQpR0aoasLaq1g94FL/a+A+wB44JLko47sVQXMg="
++ "L+ZVX8iheoqgqb22mUpATmMDsvVGt/foAe/0KN5uWf0="
+
+
+
+These two Erlang functions are described in:
++ http://erlang.org/doc/man/crypto.html#strong_rand_bytes-1
++ http://erlang.org/doc/man/base64.html#encode-1
+
+Base64 encoding the bytes generated by `strong_rand_bytes`
+will make the output human-readable
+(_whereas bytes are less user-friendly_).
+
 
 <br /> <br />
 
@@ -403,19 +449,36 @@ https://crypto.stackexchange.com/questions/3615/what-is-the-effect-of-the-differ
 + How is decryption done in AES CTR mode?: https://crypto.stackexchange.com/questions/34918/how-is-decryption-done-in-aes-ctr-mode
 + Block Cipher Counter (CTR) Mode:
 https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Counter_.28CTR.29
++ Is AES-256 weaker than 192 and 128 bit versions?
+https://crypto.stackexchange.com/questions/5118/is-aes-256-weaker-than-192-and-128-bit-versions
++ What are the practical differences between 256-bit, 192-bit, and 128-bit AES encryption?
+https://crypto.stackexchange.com/questions/20/what-are-the-practical-differences-between-256-bit-192-bit-and-128-bit-aes-enc
++ How to choose an Authenticated Encryption mode
+(_by Matthew Green cryptography professor at Johns Hopkins University_):
+https://blog.cryptographyengineering.com/2012/05/19/how-to-choose-authenticated-encryption/
++ How to choose an AES encryption mode (CBC ECB CTR OCB CFB)? (v. long answers, but good comparison!)
+https://stackoverflow.com/questions/1220751/how-to-choose-an-aes-encryption-mode-cbc-ecb-ctr-ocb-cfb
++ AES GCM vs CTR+HMAC tradeoffs:
+https://crypto.stackexchange.com/questions/14747/gcm-vs-ctrhmac-tradeoffs
++ Galois/Counter Mode for symmetric key cryptographic block ciphers: https://en.wikipedia.org/wiki/Galois/Counter_Mode
++ How long (in letters) are encryption keys for AES?
+https://security.stackexchange.com/questions/45318/how-long-in-letters-are-encryption-keys-for-aes
++ Generate random alphanumeric string (_used for AES keys_)
+https://stackoverflow.com/questions/12788799/how-to-generate-a-random-alphanumeric-string-with-erlang
 + Singular or Plural controller names?: https://stackoverflow.com/questions/35882394/phoenix-controllers-singular-or-plural
-+ Postgres Data Type for storing `bcrypt` hashed passwords: https://stackoverflow.com/questions/33944199/bcrypt-and-postgresql-what-data-type-should-be-used >> `bytea`
-+ https://security.stackexchange.com/questions/4781/do-any-security-experts-recommend-bcrypt-for-password-storage/6415#6415
++ Postgres Data Type for storing `bcrypt` hashed passwords: https://stackoverflow.com/questions/33944199/bcrypt-and-postgresql-what-data-type-should-be-used >> `bytea` (_byte_)
++ Do security experts recommend bcrypt? https://security.stackexchange.com/questions/4781/do-any-security-experts-recommend-bcrypt-for-password-storage/6415#6415
 + Hacker News discussion thread "***Don't use `bcrypt`***":
 https://news.ycombinator.com/item?id=3724560
 
 
 ## Troubleshooting
 
-If you get "stuck", please open an issue describing the issue you are facing.
+If _you_ get "stuck", please open an issue describing the issue you are facing.
 
 TIL: app names in Phoneix _must_ be lowercase letters: <br />
 ![lower-case-app-names](https://user-images.githubusercontent.com/194400/35360087-73d69d88-0154-11e8-9f47-d9a9333d1e6c.png)
+(_basic, I know, now..._)
 
 Works with lowercase:  <br />
 ![second-time-lucky](https://user-images.githubusercontent.com/194400/35360183-c522063c-0154-11e8-994a-7516bc0e5c1e.png)
@@ -426,3 +489,32 @@ To run a _single_ test while debugging, use the following syntax:
 ```sh
 mix test test/user/user_test.exs:9
 ```
+
+<br /> <br />
+
+## Credits
+
+Credit for this example goes to [@danielberkompas](https://github.com/danielberkompas)
+for his post:
+https://blog.danielberkompas.com/2015/07/03/encrypting-data-with-ecto <br />
+
+Daniel's post is for [Phoenix `v0.14.0`](https://github.com/danielberkompas/danielberkompas.github.io/blob/c6eb249e5019e782e891bfeb591bc75f084fd97c/_posts/2015-07-03-encrypting-data-with-ecto.md) which is quite "old" now ...
+therefore a few changes/updates are required.
+e.g: There are no more "**Models**" in Phoenix 1.3 or Ecto callbacks.
+
+_Also_ his post only includes the "sample code"
+and is _not_ a _complete_ example
+_explaining_ the functions & Custom Ecto Types. <br />
+Which means anyone following the post needs to _manually_ copy-paste the code...
+We prefer to include the _complete_ "end state" of any tutorial so that
+people can `git clone` and _`run`_ the code locally.
+
+<!--
+I reached out to Daniel on Twitter
+asking if he would accept a Pull Request
+updating the post to latest version of Phoenix: <br />
+[![credit-tweet](https://user-images.githubusercontent.com/194400/35771850-32b1cfba-092b-11e8-9bbf-0e693016bb76.png)](https://twitter.com/nelsonic/status/959901100760498181) <br />
+If he replies I will _gladly_ create a PR.
+_Meanwhile_ this example will fill in the gaps
+and provide a more up-to-date example.
+-->
