@@ -44,6 +44,7 @@ defmodule Encryption.Mixfile do
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
+      {:comeonin, "~> 4.0"},
 
       # Development dependencies:
       {:excoveralls, "~> 0.7.0", only: [:test, :dev]}, # tracking test coverage

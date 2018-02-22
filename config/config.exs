@@ -4,7 +4,7 @@
 # This configuration file is loaded before any dependency and
 # is restricted to this project.
 use Mix.Config
-
+System.cmd("whoami", [])
 # General application configuration
 config :encryption,
   ecto_repos: [Encryption.Repo]

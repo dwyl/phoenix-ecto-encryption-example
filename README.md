@@ -34,14 +34,22 @@ recommended by Niels Ferguson and Bruce Schneier
 _specifically_ AES with a 256 bit key (_the same as Google's KMS service_)
 see: http://erlang.org/doc/man/crypto.html#stream_init-3
 
+We are _not_ "re-inventing encryption" or using our "own algorithm"
+_everyone_ knows that's a "_**bad** idea_":
+https://security.stackexchange.com/questions/18197/why-shouldnt-we-roll-our-own
+<br />
+We are _using_ a _battle-tested_ industry-standard approach
+and applying it to our Elixir/Phoenix App.
+
 
 ## Who?
 
 This example/tutorial is for _any_ developer
-(_or technical decision maker / "application architect"_)
+(_or technical decision maker / "application architect"_) <br />
 who takes personal data protection seriously
-and wants a robust/reliable and "transparent" way
-of encrypting data `before` storing it.
+and wants a robust/reliable and "transparent" way <br />
+of _encrypting data_ `before` storing it,
+and _decrypting_ when it is queried.
 
 ### Prerequisites?
 
@@ -52,17 +60,17 @@ of encrypting data `before` storing it.
 
 > If you are totally `new` to (_or "rusty" on_) Elixir, Phoenix or Ecto,
 we recommend going through our Phoenix Chat Example (Beginner's Tutorial):
-https://github.com/nelsonic/phoenix-chat-example
+https://github.com/dwyl/phoenix-chat-example
 
 You will _not_ need any "Advanced" mathematical knowledge;
-we are _not_ "inventing" our own encryption.
+we are _not_ "inventing" our own encryption. <br />
 We use existing well-tested/respected algorithms.
 Specifically:
 + The Advanced Encryption Standard (AES) for _encryption_: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
 + Secure Hash Algorithm (SHA) for hashing data:
 https://en.wikipedia.org/wiki/Secure_Hash_Algorithms
 
-You do _not_ need to _understand_ the how either of the algorithms work,
+You do _not_ need to _understand_ the how either of the algorithms work, <br />
 merely to know the _difference_ between
 [encryption](https://en.wikipedia.org/wiki/Encryption)
 vs.
@@ -71,8 +79,6 @@ and
 [plaintext](https://en.wikipedia.org/wiki/Plaintext)
 vs.
 [ciphertext](https://en.wikipedia.org/wiki/Ciphertext).
-
-
 
 
 
@@ -113,9 +119,9 @@ You can also run your app inside IEx (Interactive Elixir) as:
 
     $ iex -S mix phx.server
 ```
-Follow the first two instruction to change into the project directory:
-```
-cd ecryption
+Follow the first two instruction to **change** into the `encryption` directory: <br />
+```sh
+cd encryption
 ```
 then **Create** the database using the command:
 ```
@@ -128,11 +134,6 @@ Generated encryption app
 The database for Encryption.Repo has been created
 ```
 
-**Change** into the `encryption` directory: <br />
-```sh
-cd encryption
-```
-
 
 
 ### 2. Create the `user` Schema (_Database Table_)
@@ -143,16 +144,17 @@ we are only going to store 3 pieces of data.
 + `email`: their email address (_encrypted_)
 + `password_hash`: the hashed password (_so they can login_)
 
-Note: in _addition_ to these 3 "_primary_" fields
+**Note**: in _addition_ to these 3 "_primary_" fields
 we need _**two** more fields_:
 + `email_hash`: so we check if an email address is in the database
 _without_ having to _decrypt_ the email(s) stored in the DB.
 + `key_id`: the id of the encryption key used to encrypt the data
-stored in the row. (_for "key rotation"_)
+stored in the row. As this is an `id`
+we use an `:integer` to store it in the DB.<sup>1</sup>
 
 Create the `user` schema using generator command:
 ```sh
-mix phx.gen.schema User users name:binary email:binary email_hash:binary
+mix phx.gen.schema User users email:binary email_hash:binary name:binary password_hash:binary key_id:integer
 ```
 
 ![phx.gen.schema](https://user-images.githubusercontent.com/194400/35360796-dc4507cc-0156-11e8-9cf1-7f4005e5ed34.png)
@@ -160,9 +162,14 @@ mix phx.gen.schema User users name:binary email:binary email_hash:binary
 
 The _reason_ we are creating the fields as `:binary`
 is that the _data_ stored in them will be _encrypted_
-and `:binary` is the most efficient type.
-
-see: https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
+and `:binary` is the _most efficient_ Ecto/SQL data type
+for storing encrypted data;
+storing it as a `String` would take up more bytes
+for the _same_ data. <br />
+i.e. _wasteful_ without any _benefit_. <br />
+see: https://dba.stackexchange.com/questions/56934/what-is-the-best-way-to-store-a-lot-of-user-encrypted-data
+<br />
+and: https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
 
 
 Run the "migration" task to create the tables in the Database:
@@ -170,8 +177,25 @@ Run the "migration" task to create the tables in the Database:
 mix ecto.migrate
 ```
 
+Running the `mix ecto.migrate` command will create the
+`users` table in your `encryption_dev` database.
+You can _view_ this (_empty_) table in pgAdmin: <br />
+![elixir-encryption-pgadmin-user-table](https://user-images.githubusercontent.com/194400/37981997-1ab4362a-31e7-11e8-9bd8-9566834fc199.png)
 
-### 3. ...
+
+<small>
+<sup>1</sup>**`key_id`**:
+_for this example/demo we are using a **single** encryption key,
+but because we have the_ `key_id` _column in our database,
+we can easily use **multiple keys** for "**key rotation**"
+which is a good idea for limiting the amount
+of data an "attacker" can get when compromising_
+</small>
+
+
+### 3. Define The 4 Functions
+
+
 
 
 
@@ -181,7 +205,7 @@ mix ecto.migrate
 
 Credit for this example goes to [@danielberkompas](https://github.com/danielberkompas)
 for his post:
-http://blog.danielberkompas.com/elixir/security/2015/07/03/encrypting-data-with-ecto.html <br />
+https://blog.danielberkompas.com/2015/07/03/encrypting-data-with-ecto<br />
 
 Daniel's post is for [Phoenix `v0.14.0`](https://github.com/danielberkompas/danielberkompas.github.io/blob/c6eb249e5019e782e891bfeb591bc75f084fd97c/_posts/2015-07-03-encrypting-data-with-ecto.md) which is quite "old" now ...
 therefore a few changes/updates are required.

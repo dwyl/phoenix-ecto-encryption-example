@@ -1,6 +1,7 @@
 defmodule Encryption.AES do
   @moduledoc """
-  Encrypt values with AES in CTR mode, using random IVs for each encryption.
+  Encrypt values with AES in CTR mode, using a random Initialisation Vector
+  for each encryption, this makes "bruteforce" decryption much more difficult.
   See `encrypt/1` and `decrypt/1` for more details.
   """
 

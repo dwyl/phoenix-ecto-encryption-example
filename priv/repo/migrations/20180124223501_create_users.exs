@@ -3,9 +3,11 @@ defmodule Encryption.Repo.Migrations.CreateUsers do
 
   def change do
     create table(:users) do
-      add :name, :binary
       add :email, :binary
       add :email_hash, :binary
+      add :name, :binary
+      add :password_hash, :binary
+      add :key_id, :integer
 
       timestamps()
     end

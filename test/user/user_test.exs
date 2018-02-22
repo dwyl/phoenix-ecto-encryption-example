@@ -1,9 +1,15 @@
 defmodule Encryption.UserTest do
+  # use ExUnit.Case
   use Encryption.DataCase
-
   alias Encryption.User
 
-  @valid_attrs %{name: "Daniel", email: "test@example.com"}
+  @valid_attrs %{
+    name: "Max",
+    email: "max@example.com", # Encryption.AES.encrypt(
+    email_hash: Encryption.HashField.hash("max@example.com"),
+    key_id: 1,
+    password_hash: Encryption.HashField.hash("NoCarbsBeforeMarbs")
+  }
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do
@@ -18,7 +24,8 @@ defmodule Encryption.UserTest do
 
   # test "changeset validates uniqueness of email through email_hash" do
   #   Repo.insert! User.changeset(%User{}, @valid_attrs)
-  #   assert {:email_hash, "has already been taken"} in errors_on(%User{}, %{email: @valid_attrs.email})
+  #   assert {:email_hash, "has already been taken"}
+  #     in errors_on(%User{}, %{email: @valid_attrs.email})
   # end
 
   test "can decrypt values of encrypted fields when loaded from database" do
