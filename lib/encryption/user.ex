@@ -43,10 +43,6 @@ defmodule Encryption.User do
   end
 
   defp set_hashed_fields(changeset) do
-    # IO.puts "- - - - - - - - - - - - - - - "
-    # IO.inspect changeset.data
-    # IO.inspect Hash.hash(changeset.data.email)
-    # IO.puts "- - - - - - - - - - - - - - - "
     case changeset.valid? do
       true ->
         changeset
@@ -58,9 +54,9 @@ defmodule Encryption.User do
   end
 
   def one() do
-    user = %User{ name: name, email: email } = Repo.one(User)
-    {:ok, email } = Encrypt.load(email)
-    {:ok, name} = Encrypt.load(name)
+    user = %User{ name: name, email: email, key_id: key_id} = Repo.one(User)
+    {:ok, email } = Encrypt.load(email, key_id)
+    {:ok, name} = Encrypt.load(name, key_id)
     %{user | email: email, name: name}
   end
 end

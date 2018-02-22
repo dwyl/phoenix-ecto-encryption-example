@@ -20,7 +20,9 @@ defmodule Encryption.AESTest do
   end
 
   test "can decrypt a value" do
-    plaintext = "hello" |> AES.encrypt |> AES.decrypt
+    keys = Application.get_env(:encryption, Encryption.AES)[:keys]
+    key_id = Enum.count(keys) - 1
+    plaintext = "hello" |> AES.encrypt |> AES.decrypt(key_id)
     assert plaintext == "hello"
   end
 end
