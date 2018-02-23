@@ -34,26 +34,31 @@ to the question:
 
 ### Technical Overview
 
-+
-+ We are using the Galois/Counter Mode for symmetric key cryptographic block ciphers: https://en.wikipedia.org/wiki/Galois/Counter_Mode
-recommended by Matthew Green, Niels Ferguson and Bruce Schneier
-(_authorities on security and cryptography_)
-+ "Under the hood" we are using Erlang's
-[crypto](http://erlang.org/doc/man/crypto.html) module
-_specifically_ AES with a **256 bit key** (_the same as Google's KMS service_)
-see: http://erlang.org/doc/man/crypto.html#block_encrypt-4
-+ Password Hashing is done with **Bcrypt**:
-
-specifically: https://github.com/riverrun/bcrypt_elixir
-
 We are _not_ "re-inventing encryption"
 or using our "own algorithm"
 _everyone_ knows that's a "_**bad** idea_":
 https://security.stackexchange.com/questions/18197/why-shouldnt-we-roll-our-own
 <br />
 We are _using_ a _battle-tested_ industry-standard approach
-and applying it to our Elixir/Phoenix App.
+and applying it to our Elixir/Phoenix App. We are using:
 
++ Advanced Encryption Standard (AES) to encrypt sensitive data.
+  + Galois/Counter Mode
+for _symmetric_ key cryptographic block ciphers:
+https://en.wikipedia.org/wiki/Galois/Counter_Mode
+recommended many security and cryptography authorities including
+ Matthew Green, Niels Ferguson and Bruce Schneier.
++ "Under the hood" we are using Erlang's
+[crypto](http://erlang.org/doc/man/crypto.html) module
+_specifically_ AES with a **256 bit key** (_the same as Google's KMS service_)
+see: http://erlang.org/doc/man/crypto.html#block_encrypt-4
++ Password Hashing is done using **Argon2**:
+https://en.wikipedia.org/wiki/Argon2
+specifically: https://github.com/riverrun/argon2_elixir
+
+Don't be "put off" if any of these are _unfamiliar_ to you;
+the example is "step-by-step" and we are happy to answer/clarify
+_any_ (_relevant_) questions you have.
 
 ## Who?
 
@@ -77,15 +82,18 @@ we recommend going through our Phoenix Chat Example
 (Beginner's Tutorial):
 https://github.com/dwyl/phoenix-chat-example
 
-You will _not_ need any "Advanced" mathematical knowledge;
+### Crypto Knowledge?
+
+You will _not_ need any "advanced" mathematical knowledge;
 we are _not_ "inventing" our own encryption. <br />
 We use existing well-tested/respected algorithms.
 Specifically:
 + The Advanced Encryption Standard (AES) for _encryption_: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
-+ Secure Hash Algorithm (SHA) for hashing data
++ Secure Hash Algorithm (SHA256) for hashing data
 (_for fast lookups_):
 https://en.wikipedia.org/wiki/Secure_Hash_Algorithms
-+ https://en.wikipedia.org/wiki/Bcrypt
++ Argon2 (_the "successor" to Bcrypt_) for password hashing:
+https://en.wikipedia.org/wiki/Argon2
 
 You do _not_ need to _understand_
 how the encryption/hashing algorithms work, <br />
@@ -157,17 +165,18 @@ The database for Encryption.Repo has been created
 
 ### 2. Create the `user` Schema (_Database Table_)
 
-In our _hypothetical_ `user` database table,
+In our _example_ `user` database table,
 we are going to store 3 pieces of data.
 + `name`: the person's name (_encrypted_)
 + `email`: their email address (_encrypted_)
-+ `password_hash`: the hashed password (_so they can login_)
++ `password_hash`: the hashed password (_so the person can login_)
 
 In _addition_ to the 3 "_primary_" fields
-we need _**two** more fields_:
-+ `email_hash`: so we check if an email address is in the database
+we need _**two** more fields_ to store "metadata":
++ `email_hash`: so we can check ("lookup")
+if an email address is in the database
 _without_ having to _decrypt_ the email(s) stored in the DB.
-+ `key_id`: the id of the encryption key used to encrypt the data
++ `key_id`: the id of the **encryption key** used to encrypt the data
 stored in the row. As this is an `id`
 we use an `:integer` to store it in the DB.<sup>1</sup>
 
@@ -502,7 +511,8 @@ https://medium.com/@jlouis666/erlang-dirty-scheduler-overhead-6e1219dcc7
 https://news.ycombinator.com/item?id=11064763
 + Why use argon2i or argon2d if argon2id exists?
 https://crypto.stackexchange.com/questions/48935/why-use-argon2i-or-argon2d-if-argon2id-exists
-
++ Good explanation of _Custom_ Ecto Types:
+https://medium.com/acutario/ecto-custom-types-a-practical-case-with-enumerize-rails-gem-b5496c2912ac
 
 ## Troubleshooting
 
@@ -523,6 +533,50 @@ To run a _single_ test while debugging, use the following syntax:
 ```sh
 mix test test/user/user_test.exs:9
 ```
+
+### Ecto Validation Error format
+```elixir
+#Ecto.Changeset<
+  action: :insert,
+  changes: %{
+    email: <<224, 124, 228, 125, 105, 102, 38, 170, 15, 199, 228, 198, 245, 189,
+      82, 193, 164, 14, 182, 8, 189, 19, 231, 49, 80, 223, 84, 143, 232, 92, 96,
+      156, 100, 4, 7, 162, 26, 2, 121, 32, 187, 65, 254, 50, 253, 101, 202>>,
+    email_hash: <<21, 173, 0, 16, 69, 67, 184, 120, 1, 57, 56, 254, 167, 254,
+      154, 78, 221, 136, 159, 193, 162, 130, 220, 43, 126, 49, 176, 236, 140,
+      131, 133, 130>>,
+    key_id: 1,
+    name: <<2, 215, 188, 71, 109, 131, 60, 147, 219, 168, 106, 157, 224, 120,
+      49, 224, 225, 181, 245, 237, 23, 68, 102, 133, 85, 62, 22, 166, 105, 51,
+      239, 198, 107, 247, 32>>,
+    password_hash: <<132, 220, 9, 85, 60, 135, 183, 155, 214, 215, 156, 180,
+      205, 103, 189, 137, 81, 201, 37, 214, 154, 204, 185, 253, 144, 74, 222,
+      80, 158, 33, 173, 254>>
+  },
+  errors: [email_hash: {"has already been taken", []}],
+  data: #Encryption.User<>,
+  valid?: false
+>
+```
+
+The `errors` part is:
+```elixir
+[email_hash: {"has already been taken", []}]
+```
+A `tuple` _wrapped_ in a `list`.
+So to _access_ the error message `"has already been taken"`
+we need some pattern-matching and list popping:
+```elixir
+{:error, changeset} = Repo.insert User.changeset(%User{}, @valid_attrs)
+{:ok, message} = Keyword.fetch(changeset.errors, :email_hash)
+msg = List.first(Tuple.to_list(message))
+assert "has already been taken" == msg
+```
+To see this in _action_ run:
+```sh
+mix test test/user/user_test.exs:40
+```
+
 
 <br /> <br />
 

@@ -11,6 +11,6 @@ defmodule Encryption.Repo.Migrations.CreateUsers do
 
       timestamps()                # Ecto/Phoenix "inserted_at" field.
     end
-
+    create unique_index(:users, [:email_hash]) # ensure email address is unique
   end
 end

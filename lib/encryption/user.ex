@@ -2,16 +2,16 @@ defmodule Encryption.User do
   use Ecto.Schema
   import Ecto.Changeset
   alias Encryption.{User, Repo}
-  alias Encryption.HashField, as: Hash # not using!
+  alias Encryption.HashField
   alias Encryption.EncryptedField, as: Encrypt
 
 
   schema "users" do
     field :email, Encryption.EncryptedField # :binary
-    field :email_hash, :binary
+    field :email_hash, Encryption.HashField # :binary
     field :key_id, :integer
     field :name, Encryption.EncryptedField # :binary
-    field :password_hash, :binary
+    field :password_hash, Encryption.PasswordField # :binary
 
     timestamps()
   end
@@ -27,6 +27,7 @@ defmodule Encryption.User do
     |> cast(attrs, [:name, :email])
     |> validate_required([:name, :email])
     |> set_hashed_fields
+    |> unique_constraint(:email_hash)
     |> encrypt_fields
 
   end
@@ -65,7 +66,7 @@ defmodule Encryption.User do
   defp set_hashed_fields(changeset) do
     case changeset.valid? do
       true ->
-        put_change(changeset, :email_hash, Hash.hash(changeset.data.email))
+        put_change(changeset, :email_hash, HashField.hash(changeset.data.email))
       _ ->
         changeset # return unmodified
     end

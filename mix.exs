@@ -46,7 +46,7 @@ defmodule Encryption.Mixfile do
       {:cowboy, "~> 1.0"},
 
       {:bcrypt_elixir, "~> 1.0.6"}, # securely hashing & comparing passwords
-      {:argon2_elixir, "~> 1.2"},
+      {:argon2_elixir, "~> 1.2"}, 
       # Development dependencies:
       {:excoveralls, "~> 0.7.0", only: [:test, :dev]}, # tracking test coverage
       {:dogma, "~> 0.1", only: [:test, :dev]}, # Elixir style

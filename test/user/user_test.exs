@@ -22,23 +22,28 @@ defmodule Encryption.UserTest do
     refute changeset.valid?
   end
 
-  # test "changeset validates uniqueness of email through email_hash" do
-  #   Repo.insert! User.changeset(%User{}, @valid_attrs)
-  #   assert {:email_hash, "has already been taken"}
-  #     in errors_on(%User{}, %{email: @valid_attrs.email})
-  # end
-
   test "can decrypt values of encrypted fields when loaded from database" do
     Repo.insert! User.changeset(%User{}, @valid_attrs)
     user = User.one()
     assert user.name  == @valid_attrs.name
     assert user.email == @valid_attrs.email
+  end
+
+  test "inserting a user sets the :email_hash field" do
+    user = Repo.insert! User.changeset(%User{}, @valid_attrs)
+    # hash = Encryption.HashField.hash(@valid_attrs.email)
+    # IO.inspect hash, label: "hash"
+    # IO.inspect user.email_hash, label: "email_hash"
     assert user.email_hash == Encryption.HashField.hash(@valid_attrs.email)
   end
 
-  test "inserting a user updates the :email_hash field" do
-    user = Repo.insert! User.changeset(%User{}, @valid_attrs)
-    assert user.email_hash == Encryption.HashField.hash(@valid_attrs.email)
+  test "changeset validates uniqueness of email through email_hash" do
+    Repo.insert! User.changeset(%User{}, @valid_attrs) # first insert works.
+    # Now attempt to insert the *same* user again:
+    {:error, changeset} = Repo.insert User.changeset(%User{}, @valid_attrs)
+    {:ok, message} = Keyword.fetch(changeset.errors, :email_hash)
+    msg = List.first(Tuple.to_list(message))
+    assert "has already been taken" == msg
   end
 
   test "cannot query on email field due to encryption not producing same value twice" do
