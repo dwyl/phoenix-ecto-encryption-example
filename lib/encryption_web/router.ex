@@ -9,10 +9,6 @@ defmodule EncryptionWeb.Router do
     plug :put_secure_browser_headers
   end
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
   scope "/", EncryptionWeb do
     pipe_through :browser # Use the default browser stack
 
@@ -20,6 +16,9 @@ defmodule EncryptionWeb.Router do
   end
 
   # Other scopes may use custom stacks.
+  # pipeline :api do
+  #   plug :accepts, ["json"]
+  # end
   # scope "/api", EncryptionWeb do
   #   pipe_through :api
   # end
