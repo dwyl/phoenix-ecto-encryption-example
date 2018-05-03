@@ -2,7 +2,9 @@
 
 ![data-encrypted-cropped](https://user-images.githubusercontent.com/194400/36345569-f60382de-1424-11e8-93e9-74ed7eaceb71.jpg)
 
-[![Build Status](https://travis-ci.org/nelsonic/phoenix-ecto-encryption-example.svg?branch=master)](https://travis-ci.org/nelsonic/phoenix-ecto-encryption-example)
+[![Build Status](https://img.shields.io/travis/dwyl/phoenix-ecto-encryption-example/master.svg?style=flat-square)](https://travis-ci.org/dwyl/phoenix-ecto-encryption-example)
+[![codecov.io](https://img.shields.io/codecov/c/github/dwyl/phoenix-ecto-encryption-example/master.svg?style=flat-square)](http://codecov.io/github/dwyl/phoenix-ecto-encryption-example?branch=master)
+[![HitCount](http://hits.dwyl.io/dwyl/phoenix-ecto-encryption-example.svg)](https://github.com/dwyl/phoenix-ecto-encryption-example)
 
 ## Why?
 
@@ -80,7 +82,7 @@ and _decrypting_ when it is queried.
 Elixir, Phoenix or Ecto,
 we recommend going through our Phoenix Chat Example
 (Beginner's Tutorial):
-https://github.com/dwyl/phoenix-chat-example
+https://github.com/dwyl/phoenix-ecto-encryption-example
 
 ### Crypto Knowledge?
 
@@ -212,7 +214,7 @@ You can _view_ this (_empty_) table in pgAdmin: <br />
 
 
 <small>
-<sup>1</sup>**`key_id`**:
+<sup>1</sup>`key_id`:
 _for this example/demo we are using a **single** encryption key,
 but because we have the_ `key_id` _column in our database,
 we can easily use **multiple keys** for "**key rotation**"
@@ -226,9 +228,10 @@ of data an "attacker" can decrypt if the database were ever "compromised"._
 We need 4 functions for encrypting, decrypting and hashing the data:
 1. **Encrypt** - to encrypt any personal data we want to store in the database.
 2. **Decrypt** - decrypt any data that needs to be viewed.
-3. **Get Key** - get the _latest_ encryption/decryption key.
-4. **Hash Email** (_deterministic & **fast**_) - so that we can "lookup" an email
-without "decrypting".
+3. **Get Key** - get the _latest_ encryption/decryption key
+(_or a **specific** older key where data was encrypted with a different key_)
+4. **Hash Email** (_deterministic & **fast**_) - so that we can "lookup"
+an email without "decrypting".
 The hash of an email address should _always_ be the ***same***.
 5. **Hash Password** (_pseudorandom & **slow**_) - the output of the hash
 should _always_ be ***different*** and relatively **slow** to compute.
@@ -535,6 +538,12 @@ mix test test/user/user_test.exs:9
 ```
 
 ### Ecto Validation Error format
+
+When Ecto `changeset` validation fails,
+for example if there is a "unique" constraint on email address
+(_so that people cannot re-register with the same email address twice_),
+Ecto returns the `changeset` with an `errors` key:
+
 ```elixir
 #Ecto.Changeset<
   action: :insert,
@@ -564,6 +573,8 @@ The `errors` part is:
 [email_hash: {"has already been taken", []}]
 ```
 A `tuple` _wrapped_ in a `list`.
+(_no idea why this construct, but there must be a **reason** somewhere..._)
+
 So to _access_ the error message `"has already been taken"`
 we need some pattern-matching and list popping:
 ```elixir
