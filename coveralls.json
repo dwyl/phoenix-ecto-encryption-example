@@ -3,6 +3,7 @@
     "minimum_coverage": 97
   },
   "skip_files": [
-    "test/"
+    "test/",
+    "lib/encryption_web.ex"
   ]
 }
