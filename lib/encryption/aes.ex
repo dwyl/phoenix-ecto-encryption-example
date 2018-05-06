@@ -25,18 +25,19 @@ defmodule Encryption.AES do
       iex> is_binary(ciphertext)
       true
   """
-  @spec encrypt(any, number) :: {String.t, number}
-  def encrypt(plaintext, key_id) do
+  @spec encrypt(any) :: String.t
+  def encrypt(plaintext) do
     iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
-    key = get_key(key_id)
+    key = get_key()    # get the *latest* key in the list of encryption keys
     {ciphertext, tag} =
       :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
     iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
   end
 
-  def encrypt(plaintext) do
+  @spec encrypt(any, number) :: {String.t, number}
+  def encrypt(plaintext, key_id) do
     iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
-    key = get_key()
+    key = get_key(key_id) # get *specific* key (by id) from list of keys.
     {ciphertext, tag} =
       :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
     iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext

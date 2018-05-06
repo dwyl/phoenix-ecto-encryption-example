@@ -51,7 +51,7 @@ https://en.wikipedia.org/wiki/Galois/Counter_Mode
 recommended many security and cryptography authorities including
  Matthew Green, Niels Ferguson and Bruce Schneier.
 + "Under the hood" we are using Erlang's
-[crypto](http://erlang.org/doc/man/crypto.html) module
+[crypto](http://erlang.org/doc/man/crypto.html) library
 _specifically_ AES with a **256 bit key** (_the same as Google's KMS service_)
 see: http://erlang.org/doc/man/crypto.html#block_encrypt-4
 + Password Hashing is done using **Argon2**:
@@ -80,9 +80,9 @@ and _decrypting_ when it is queried.
 
 > If you are totally `new` to (_or "rusty" on_)
 Elixir, Phoenix or Ecto,
-we recommend going through our Phoenix Chat Example
-(Beginner's Tutorial):
-https://github.com/dwyl/phoenix-ecto-encryption-example
+we recommend going through our **Phoenix Chat Example**
+(_Beginner's Tutorial_):
+https://github.com/dwyl/phoenix-chat-example
 
 ### Crypto Knowledge?
 
@@ -113,10 +113,11 @@ vs.
 ## How?
 
 These are "step-by-step" instructions,
-don't skip any steps.
+don't skip any step(s).
 
 ### 1. Creat the `encryption` App
 
+In your Terminal program,
 **Create** a `new` Phoenix application called "encryption":
 ```sh
 mix phx.new encryption
@@ -244,27 +245,39 @@ should _always_ be ***different*** and relatively **slow** to compute.
 
 #### 3.1 Encrypt
 
-The `encrypt` function for encrypting `plaintext` Strings
+The `encrypt` function for encrypting `plaintext`
 is quite simple; (_only 4 lines_):<br />
 
 ```elixir
 def encrypt(plaintext) do
-  iv    = :crypto.strong_rand_bytes(16) # create random Initialization Vector
-  state = :crypto.stream_init(:aes_ctr, get_key(), iv) # create crypto stream
-  # peform the encryption:
-  {_state, ciphertext} = :crypto.stream_encrypt(state, to_string(plaintext))
-  iv <> ciphertext # "return" iv concatenated with the ciphertext
+  iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
+  key = get_key()   # get the *latest* key in the list of encryption keys
+  {ciphertext, tag} =
+    :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
+  iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
 end
 ```
 
-First we create a "**strong**" random
++ First we create a "**strong**" _random_
 [***initialization vector***](https://en.wikipedia.org/wiki/Initialization_vector)
-(IV) of **128 bits** (***16 bytes***)
+(IV) of **16 bytes** (***128 bits***)
 using the Erlang's crypto library `strong_rand_bytes` function:
 http://erlang.org/doc/man/crypto.html#strong_rand_bytes-1
 The "IV" is ensures that each time a string/block of text/data is encrypted,
 the `ciphertext`.
++ Next we use the `get_key` function
+to retrieve the _latest_ encryption key
+so we can use it to `encrypt` the `plaintext`.
++ Then we
++ Finally we "return" the `iv` with the `ciphertag` & `ciphertext`
 
+> _**Note**: in addition to this_ `encrypt/1` _function,
+we have defined an_ `encrypt/2` _"sister" function which accepts
+a **specific** (encryption)_ `key_id` _so that we can use the desired
+encryption key for encrpyting a block of text.
+For the purposes of this example/tutorial,
+it's **not strictly necessary**,
+but it is included for "completeness"_.
 
 
 #### 3.2 Decrypt
