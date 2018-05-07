@@ -54,17 +54,14 @@ defmodule Encryption.AES do
       "test"
   """
   @spec decrypt(String.t, number) :: {String.t, number}
-  def decrypt(ciphertext, key_id) do
+  def decrypt(ciphertext, key_id) do # patern match on binary to split parts:
     <<iv::binary-16, tag::binary-16, ciphertext::binary>> = ciphertext
-    :crypto.block_decrypt(
-      :aes_gcm,
-      get_key(key_id),
-      iv,
-      {@aad, ciphertext, tag}
-    )
+    key = get_key(key_id) # get encrytion/decryption key based on key_id
+    :crypto.block_decrypt(:aes_gcm, key, iv, {@aad, ciphertext, tag})
   end
 
   # as above but *asumes* `default` (latest) encryption key is used.
+  @spec decrypt(any) :: String.t
   def decrypt(ciphertext) do
     <<iv::binary-16, tag::binary-16, ciphertext::binary>> = ciphertext
     :crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})

@@ -267,14 +267,24 @@ The "IV" is ensures that each time a string/block of text/data is encrypted,
 the `ciphertext`.
 + Next we use the `get_key` function
 to retrieve the _latest_ encryption key
-so we can use it to `encrypt` the `plaintext`.
-+ Then we
-+ Finally we "return" the `iv` with the `ciphertag` & `ciphertext`
+so we can use it to `encrypt` the `plaintext` (_defined below_)
++ Then we use the Erlang `block_encrypt` function to encrypt the `plaintext`.
+Using `:aes_gcm` ("Advanced Encryption Standard Galois Counter Mode").
+  + `@aad` is a "module attribute" (_Elixir's equivalent of a "constant"_)
+  is defined in `aes.ex` as `@aad "AES256GCM"` this simply defines the
+  encryption mode we are using which, if you break downt the code into 3 parts:
+    + AES
+    + 256 = "256 Bit Key" (_the )
+    + GCM = "Galois Counter Mode"
++ Finally we "return" the `iv` with the `ciphertag` & `ciphertext`,
+this string of data is what we store in the database.
+Including the IV and ciphertag is _essential_ for allowing decryption,
+without these two pieces of data, we would not be able to "reverse" the process.
 
 > _**Note**: in addition to this_ `encrypt/1` _function,
 we have defined an_ `encrypt/2` _"sister" function which accepts
 a **specific** (encryption)_ `key_id` _so that we can use the desired
-encryption key for encrpyting a block of text.
+encryption key for encrypting a block of text.
 For the purposes of this example/tutorial,
 it's **not strictly necessary**,
 but it is included for "completeness"_.
@@ -287,13 +297,9 @@ it accepts a "blob" of `ciphertext` (_which as you may recall_),
 has the IV prepended to it, and returns the original `plaintext`.
 
 ```elixir
-def decrypt(ciphertext, key_id) do
-  <<iv::binary-16, ciphertext::binary>> = ciphertext # split iv & ciphertext
-  # get encryption key based on key_id & Initialise crypto stream:
-  state = :crypto.stream_init(:aes_ctr, get_key(key_id), iv)
-  # perform decryption
-  {_state, plaintext} = :crypto.stream_decrypt(state, ciphertext)
-  plaintext # "return" just the plaintext
+def decrypt(ciphertext) do
+  <<iv::binary-16, tag::binary-16, ciphertext::binary>> = ciphertext
+  :crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})
 end
 ```
 
@@ -301,27 +307,40 @@ The fist step (line) is to "split" the IV from the `ciphertext`
 using Elixir's binary pattern matching.
 
 > If you are unfamiliar with Elixir binary pattern matching syntax
-`<<iv::binary-16, ciphertext::binary>>`
+`<<iv::binary-16, tag::binary-16, ciphertext::binary>>``
 read the following guide:
 https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
 
-The `state = :crypto.stream_init(:aes_ctr, get_key(key_id), iv)` line
-is the _same_ as in the `encrypt` function,
-_except_ that this time we initialise the stream with a _specific_ key
-(_the key that was used to `encrypt` the data originally_).
+The `:crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})`
+line is the _very similar_ to the `encrypt` function.
 
-`ciphertext` is decrypted using `stream_decrypt`
-http://erlang.org/doc/man/crypto.html#stream_decrypt-2
+The `ciphertext` is decrypted using
+[`block_decrypt/4`](http://erlang.org/doc/man/crypto.html#block_decrypt-4)
+passing in the following parameters:
++ `:aes_gcm` = encyrption algorithm
++ `get_key()` =  get the encryption key used to `encrypt` the `plaintext`
++ `iv` = the original Initialisation Vector used to `encrypt` the `plaintext`
++ `{@aad, ciphertext, tag}` = a Tuple with the encryption "mode",
+`ciphertext` and the `tag` used to encrypt the `ciphertext`
 
-Finally the original `plaintext` is _returned_.
+Finally _just_ the original `plaintext` is _returned_.
 
+> _**Note**: as above with the_ `encrypt/2` _function,
+we have defined an_ `decrypt/2` _"sister" function which accepts
+a **specific** (encryption)_ `key_id` _so that we can use the desired
+encryption key for decrypting the_ `ciphertext`.
+_For the purposes of this example/tutorial,
+it's **not strictly necessary**,
+but it is included for "completeness"_.
 
 
 #### 3.3 Get (Encryption) Key
 
 You will have noticed that _both_ `encrypt` and `decrypt` functions
-call a `get_key()` function on the `state = ...` line.
+call a `get_key()` function.
 It is not a "built-in" function, we are about to define it!
+
+
 
 
 
@@ -502,11 +521,14 @@ https://blog.cryptographyengineering.com/2012/05/19/how-to-choose-authenticated-
 https://stackoverflow.com/questions/1220751/how-to-choose-an-aes-encryption-mode-cbc-ecb-ctr-ocb-cfb
 + AES GCM vs CTR+HMAC tradeoffs:
 https://crypto.stackexchange.com/questions/14747/gcm-vs-ctrhmac-tradeoffs
-+ Galois/Counter Mode for symmetric key cryptographic block ciphers: https://en.wikipedia.org/wiki/Galois/Counter_Mode
++ Galois/Counter Mode for symmetric key cryptographic block ciphers:
+https://en.wikipedia.org/wiki/Galois/Counter_Mode
 + Ciphertext and tag size and IV transmission with AES in GCM mode:
 https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
 + How long (in letters) are encryption keys for AES?
 https://security.stackexchange.com/questions/45318/how-long-in-letters-are-encryption-keys-for-aes
++ Why we can't implement AES 512 key size?
+https://crypto.stackexchange.com/questions/20253/why-we-cant-implement-aes-512-key-size
 + Generate random alphanumeric string (_used for AES keys_)
 https://stackoverflow.com/questions/12788799/how-to-generate-a-random-alphanumeric-string-with-erlang
 + Singular or Plural controller names?: https://stackoverflow.com/questions/35882394/phoenix-controllers-singular-or-plural
