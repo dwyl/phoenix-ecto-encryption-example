@@ -340,18 +340,36 @@ You will have noticed that _both_ `encrypt` and `decrypt` functions
 call a `get_key()` function.
 It is not a "built-in" function, we are about to define it!
 
+```elixir
+defp get_key do
+  keys = Application.get_env(:encryption, Encryption.AES)[:keys]
+  count = Enum.count(keys) - 1 # get the last/latest key from the key list
+  get_key(count) # use get_key/1 to retrieve the desired encryption key.
+end
 
+defp get_key(key_id) do
+  keys = Application.get_env(:encryption, Encryption.AES)[:keys] # cached call
+  Enum.at(keys, key_id) # retrieve the desired key by key_id from keys list.
+end
+```
 
+We define the `get_key` _twice_ in `lib/encryption/aes.ex`
+as per Erlang/Elixir standard,
+once for each ["arity"](https://en.wikipedia.org/wiki/Arity)
+or number of "arguments".
+In the first case `get_key/0` _assumes_ you want the _latest_ Encryption Key.
+the second case `get_key/1` lets you supply the `key_id` to be "looked up":
 
 
 
 ##### `ENCRYPTION_KEYS` Environment Variable
 
-In order for our `get_key` function to work,
+In order for our `get_key/0` and `get_key/1` functions to work,
 it needs to be know how to "read" the encryption keys.
 
 > _**Note**: we prefer to store our Encryption Keys as
-**Environment Variables**
+**Environment Variables** this is consistent with the "12 Factor App"
+best practice:_
 
 e need to "export" an Environment Variable
 containing a (_comma-separated_) list of (_one or more_)

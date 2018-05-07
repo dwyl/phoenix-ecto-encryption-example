@@ -77,15 +77,16 @@ defmodule Encryption.AES do
   #     iex> Encryption.AES.get_key
   #     <<13, 217, 61, 143, 87, 215, 35, 162, 183, 151, 179, 205, 37, 148>>
   # """ # doc commented out because https://stackoverflow.com/q/45171024/1148249
-  @spec get_key(number) :: number
-  defp get_key(key_id) do
-    keys = Application.get_env(:encryption, Encryption.AES)[:keys]
-    Enum.at(keys, key_id)
-  end
-
+  @spec get_key() :: String
   defp get_key do
     keys = Application.get_env(:encryption, Encryption.AES)[:keys]
     count = Enum.count(keys) - 1
     get_key(count)
+  end
+
+  @spec get_key(number) :: String
+  defp get_key(key_id) do
+    keys = Application.get_env(:encryption, Encryption.AES)[:keys]
+    Enum.at(keys, key_id)
   end
 end
