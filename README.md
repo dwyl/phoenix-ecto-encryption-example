@@ -360,20 +360,27 @@ or number of "arguments".
 In the first case `get_key/0` _assumes_ you want the _latest_ Encryption Key.
 the second case `get_key/1` lets you supply the `key_id` to be "looked up":
 
+Both versions of `get_key` call the `get_env` function:
+`Application.get_env(:encryption, Encryption.AES)[:keys]`
+For this to work we need to define the keys as an Environment Variablevariable
+and make it available to our App in `config.exs`.
 
+> _For the **complete** file containing these functions see_:
+[`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
 
 ##### `ENCRYPTION_KEYS` Environment Variable
 
-In order for our `get_key/0` and `get_key/1` functions to work,
+In order for our `get_key/0` and `get_key/1` functions to _work_,
 it needs to be know how to "read" the encryption keys.
 
 > _**Note**: we prefer to store our Encryption Keys as
 **Environment Variables** this is consistent with the "12 Factor App"
-best practice:_
+best practice:_ https://en.wikipedia.org/wiki/Twelve-Factor_App_methodology
 
-e need to "export" an Environment Variable
+We need to "export" an Environment Variable
 containing a (_comma-separated_) list of (_one or more_)
 encryption key(s).
+
 _Copy-paste_ (_and run_) the following command in your terminal:
 
 ```elixir
@@ -386,63 +393,6 @@ echo "export ENCRYPTION_KEYS='nMdayQpR0aoasLaq1g94FLba+A+wB44JLko47sVQXMg=,L+ZVX
 > _**Note**: there are **two** encryption keys separated by a comma.
 This is to **demonstrate** that it's **possible** to use **multiple keys**._
 
-
-```elixir
-
-```
-
-
-
-https://elixirschool.com/en/lessons/specifics/ets/
-https://elixir-lang.org/getting-started/mix-otp/ets.html
-
-
-
-In your terminal run the following **_three_ commands**:
-
-
-
-```sh
-
-
-```
-
-As noted above, we want the _ability_ to "_rotate_" our encryption keys.
-As such we need the ability to have a _list_
-of encryption keys we can select from.
-(_if you just want to see the example in action,
-  and not bother with setting up any Environment Variables with multiple keys,
-  skip to the next function_)
-
-```
-
-```
-
-
-
-#### 3.3.a
-
-#### Copy The `.env_sample` File
-
-The _easy_ way manage your Environment Variables _locally_
-is to have a `.env` file in the _root_ of the project.
-
-_Copy_ the _sample_ one:
-
-```sh
-cp .env_sample .env
-```
-> _**before** doing anything `else`,
-ensure that `.env` is in your [`.gitignore`](https://github.com/nelsonic/phoenix-ecto-encryption-example/blob/0bc9481ab5f063e431244d915691d52103e103a6/.gitignore#L28) file._
-
-Now update the _values_ in your `.env` file the _real_ ones for your App. <br />
-
-
-> Note: if you are using a "Cloud Platform" to deploy your app,
-you could consider using their "Key Management Service"
-for managing encryption keys. eg: <br />
-+ https://aws.amazon.com/kms/
-+ https://cloud.google.com/kms/
 
 #### Generate the `SECRET_KEY_BASE`
 
@@ -457,6 +407,29 @@ into your `.env` file after the "equals sign" on the line for `SECRET_KEY_BASE`:
 export SECRET_KEY_BASE=YourSecreteKeyBaseGeneratedUsing-mix_phx.gen.secret
 ```
 
+#### _Alternatively_ Copy The `.env_sample` File
+
+The _easy_ way manage your Environment Variables _locally_
+is to have a `.env` file in the _root_ of the project.
+
+_Copy_ the _sample_ one:
+
+```sh
+cp .env_sample .env
+```
+> _**before** doing anything `else`,
+ensure that `.env` is in your [`.gitignore`](https://github.com/nelsonic/phoenix-ecto-encryption-example/blob/0bc9481ab5f063e431244d915691d52103e103a6/.gitignore#L28) file._
+
+Now update the _values_ in your `.env` file the _real_ ones for your App. <br />
+
+> Note: We are using an `.env` file,
+but if you are using a "Cloud Platform" to deploy your app,
+you could consider using their "Key Management Service"
+for managing encryption keys. eg: <br />
++ Heroku:
+https://github.com/dwyl/learn-environment-variables#environment-variables-on-heroku
++ AWS: https://aws.amazon.com/kms/
++ Google Cloud: https://cloud.google.com/kms/
 
 
 #### 3.4 Hash _Email Address_
@@ -468,11 +441,102 @@ in case the DB is ever "compromised"
 the "attacker" still has to "compute" a "rainbow table"
 from _scratch_.
 
+```elixir
+def hash(value) do
+  :crypto.hash(:sha256, value <> get_salt())
+end
+
+# Get/use Phoenix secret_key_base as "salt" for one-way hashing Email address:
+defp get_salt do
+  Application.get_env(:encryption, EncryptionWeb.Endpoint)[:secret_key_base]
+end
+```
+
+The `hash` function is just using Erlang's `crypto` library
+[`hash/2`](http://erlang.org/doc/man/crypto.html#hash-2) function.
++ First we tell the `hash/2` function that we want to use `:sha256`
+"SHA 256" is the most widely used/recommended hash; it's both fast and "secure".
++ We then hash the `value` passed in to the `hash/1` function (_we defined_)
+and _concatenate_ it with "salt" using the `get_salt/0` function
+which retrieves the `secret_key_base` environment variable.
+
+> _**Note**: Don't forget to export your_ `SECRET_KEY_BASE`
+_environment variable_ (_see instructions above_)
+
+> The full file containing these two functions is:
+[`lib/encryption/hash_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/hash_field.ex)
+
+
+
 #### 3.5 Hash _Password_
 
-Using `bcrypt` makes "cracking" a password
+When hashing **passwords**, we want to use the _strongest_ hashing algorithm
+and we also want the hashed value (_or "digest"_) to be different
+each time the _same_ `plaintext` is hashed
+(_unlike when hashing the email address where we want a consistent digest_).
+
+Using `argon2` makes "cracking" a password
 (_in the event of the database being "compromised"
-far less likely_) as `bcrypt` has a CPU-bound "work-factor".
+far less likely_) as `bcrypt` has a CPU-bound "work-factor"
+and a "Memory-hard" algorithim which will "slow down" and attacker.
+
+The two functions we use are:
+
+```elixir
+def hash(value) do
+  Argon2.Base.hash_password(value, Argon2.gen_salt(), [{:argon2_type, 2}])
+end
+
+def verify_pass(password, stored_hash) do
+  Argon2.verify_pass(password, stored_hash)
+end
+```
+
+The first function `hash/1` accepts a password to be hashed.
+`hash/1` calls
+[`Argon2.Base.hash_password/3`](https://hexdocs.pm/argon2_elixir/Argon2.Base.html#hash_password/3)
+passing in 3 arguments:
++ `value` - the value (_password_) to be hashed
++ `Argon2.gen_salt()` - the salt used to initialise the hash function
+note: "behind the scenes" just
+[`:crypto.strong_rand_bytes(16)`](https://github.com/riverrun/argon2_elixir/blob/d283a4f316a2a26e61f032a826ff992a480018c2/lib/argon2.ex#L76)
+as we saw before in the `encrypt` function; again,
+**128 bits** is considered "secure" as a hash salt or initialization vector.
++ `[{:argon2_type, 2}]` - this corresponds to `argon2id` see:
+  + https://github.com/riverrun/argon2_elixir/issues/17
+  + https://crypto.stackexchange.com/questions/48935/why-use-argon2i-or-argon2d-if-argon2id-exists
+
+The _corresponding_ function to _check_ (_or "verify"_)
+the password is `verify_pass/2`.
+We need to supply both the `password` and `stored_hash`
+(_the hash that was previously stored in the database
+  when the person registered_)
+It then runs `Argon2.verify_pass` which does the checking.
+
+`hash/1` and `verify_pass/2` functions are defined in:
+[`lib/encryption/password_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/password_field.ex)
+
+Tests for these functions are
+
+
+> We are using the Elixir implementation of `argon2`
+written by David Whitlock:
+https://github.com/riverrun/argon2_elixir
+Which in turn uses the C "reference implementation"
+as a "Git Submodule" see:
+https://github.com/riverrun/phc-winner-argon2/tree/670229c849b9fe882583688b74eb7dfdc846f9f6
+
+
+### _Understanding_ Custom Ecto Types
+
+Writing a few functions to `encrypt`, `decrypt` and `hash` data
+is a good _start_, however the real "_magic_" comes from defining
+these functions as Custom Ecto Types.
+
+
+https://hexdocs.pm/ecto/Ecto.Type.html
+
+### User Interface ?
 
 
 
@@ -569,19 +633,10 @@ https://news.ycombinator.com/item?id=11064763
 https://crypto.stackexchange.com/questions/48935/why-use-argon2i-or-argon2d-if-argon2id-exists
 + Good explanation of _Custom_ Ecto Types:
 https://medium.com/acutario/ecto-custom-types-a-practical-case-with-enumerize-rails-gem-b5496c2912ac
++ Consider using ETS to store encryption/decryption keys:
+https://elixir-lang.org/getting-started/mix-otp/ets.html &
+https://elixirschool.com/en/lessons/specifics/ets
 
-## Troubleshooting
-
-If _you_ get "stuck", please open an issue on GitHub:
-https://github.com/nelsonic/phoenix-ecto-encryption-example/issues
-describing the issue you are facing with as much detail as you can.
-
-TIL: app names in Phoneix _must_ be lowercase letters: <br />
-![lower-case-app-names](https://user-images.githubusercontent.com/194400/35360087-73d69d88-0154-11e8-9f47-d9a9333d1e6c.png)
-(_basic, I know, now..._)
-
-Works with lowercase:  <br />
-![second-time-lucky](https://user-images.githubusercontent.com/194400/35360183-c522063c-0154-11e8-994a-7516bc0e5c1e.png)
 
 ### Running a Single Test
 
@@ -589,6 +644,7 @@ To run a _single_ test while debugging, use the following syntax:
 ```sh
 mix test test/user/user_test.exs:9
 ```
+For more detail, please see: https://hexdocs.pm/phoenix/testing.html
 
 ### Ecto Validation Error format
 
@@ -641,25 +697,40 @@ To see this in _action_ run:
 mix test test/user/user_test.exs:40
 ```
 
+### Troubleshooting
+
+If _you_ get "stuck", please open an issue on GitHub:
+https://github.com/nelsonic/phoenix-ecto-encryption-example/issues
+describing the issue you are facing with as much detail as you can.
+
+TIL: app names in Phoneix _must_ be lowercase letters: <br />
+![lower-case-app-names](https://user-images.githubusercontent.com/194400/35360087-73d69d88-0154-11e8-9f47-d9a9333d1e6c.png)
+(_basic, I know, now..._)
+
+Works with lowercase:  <br />
+![second-time-lucky](https://user-images.githubusercontent.com/194400/35360183-c522063c-0154-11e8-994a-7516bc0e5c1e.png)
 
 <br /> <br />
 
 ## Credits
 
-Credit for this example goes to [@danielberkompas](https://github.com/danielberkompas)
-for his post:
+Inspiration/Credit for this example goes to [@danielberkompas](https://github.com/danielberkompas)
+for his post: <br />
 https://blog.danielberkompas.com/2015/07/03/encrypting-data-with-ecto <br />
 
-Daniel's post is for [Phoenix `v0.14.0`](https://github.com/danielberkompas/danielberkompas.github.io/blob/c6eb249e5019e782e891bfeb591bc75f084fd97c/_posts/2015-07-03-encrypting-data-with-ecto.md) which is quite "old" now ...
-therefore a few changes/updates are required.
+Daniel's post is for [Phoenix `v0.14.0`](https://github.com/danielberkompas/danielberkompas.github.io/blob/c6eb249e5019e782e891bfeb591bc75f084fd97c/_posts/2015-07-03-encrypting-data-with-ecto.md)
+which is quite "old" now ...<br />
+therefore a few changes/updates are required. <br />
 e.g: There are no more "**Models**" in Phoenix 1.3 or Ecto callbacks.
 
 _Also_ his post only includes the "sample code"
-and is _not_ a _complete_ example
-_explaining_ the functions & Custom Ecto Types. <br />
+and is _not_ a _complete_ example <br />
+and does _not_ _explain_ the functions & Custom Ecto Types. <br />
 Which means anyone following the post needs to _manually_ copy-paste the code...
 We prefer to include the _complete_ "end state" of any tutorial so that
 people can `git clone` and _`run`_ the code locally.
+
+Still, props to Daniel for his post, a really good intro to the topic!
 
 <!--
 I reached out to Daniel on Twitter
