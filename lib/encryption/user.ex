@@ -1,9 +1,9 @@
 defmodule Encryption.User do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Encryption.{User, Repo}
-  alias Encryption.HashField
-  alias Encryption.EncryptedField, as: Encrypt
+  alias Encryption.{User, Repo, HashField, EncryptedField, PasswordField}
+  # alias Encryption.HashField
+  # alias Encryption.EncryptedField, as: Encrypt
 
 
   schema "users" do
@@ -29,13 +29,11 @@ defmodule Encryption.User do
     |> set_hashed_fields
     |> unique_constraint(:email_hash)
     |> encrypt_fields
-
   end
 
   # defp prepare_fields(changeset, schema) do
   #
   # end
-
 
 
   defp encrypt_fields(changeset) do
@@ -52,8 +50,8 @@ defmodule Encryption.User do
 
     case changeset.valid? do
       true ->
-        {:ok, encrypted_email} = Encrypt.dump(changeset.data.email)
-        {:ok, encrypted_name} = Encrypt.dump(changeset.data.name)
+        {:ok, encrypted_email} = EncryptedField.dump(changeset.data.email)
+        {:ok, encrypted_name} = EncryptedField.dump(changeset.data.name)
         changeset
         # |> IO.inspect
         |> put_change(:email, encrypted_email)
@@ -66,16 +64,20 @@ defmodule Encryption.User do
   defp set_hashed_fields(changeset) do
     case changeset.valid? do
       true ->
-        put_change(changeset, :email_hash, HashField.hash(changeset.data.email))
+        changeset
+        |> put_change(:email_hash, HashField.hash(changeset.data.email))
+        |> put_change(:password_hash, PasswordField.hash(changeset.data.password))
       _ ->
         changeset # return unmodified
     end
   end
 
   def one() do
-    user = %User{ name: name, email: email, key_id: key_id} = Repo.one(User)
-    {:ok, email } = Encrypt.load(email, key_id)
-    {:ok, name} = Encrypt.load(name, key_id)
-    %{user | email: email, name: name}
+    user = %User{
+      name: name, email: email, key_id: key_id, password_hash: password_hash } =
+        Repo.one(User)
+    {:ok, email } = EncryptedField.load(email, key_id)
+    {:ok, name} = EncryptedField.load(name, key_id)
+    %{user | email: email, name: name, password_hash: password_hash}
   end
 end

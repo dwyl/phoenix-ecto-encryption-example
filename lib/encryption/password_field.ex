@@ -1,7 +1,4 @@
 defmodule Encryption.PasswordField do
-  # alias Encryption.AES
-  alias Argon2.Base
-
   @behaviour Ecto.Type
 
   def type, do: :binary
@@ -19,7 +16,8 @@ defmodule Encryption.PasswordField do
   end
 
   def hash(value) do
-    Base.hash_password(value, Argon2.gen_salt(), [{:argon2_type, 2}])
+    Argon2.Base.hash_password(to_string(value),
+      Argon2.gen_salt(), [{:argon2_type, 2}])
   end
 
   def verify_pass(password, stored_hash) do

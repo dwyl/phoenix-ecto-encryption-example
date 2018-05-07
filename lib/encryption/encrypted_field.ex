@@ -2,7 +2,6 @@ defmodule Encryption.EncryptedField do
   alias Encryption.AES
 
   @behaviour Ecto.Type
-
   def type, do: :binary
 
   def cast(value) do

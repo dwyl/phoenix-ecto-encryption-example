@@ -8,7 +8,7 @@ defmodule Encryption.UserTest do
     email: "max@example.com", # Encryption.AES.encrypt(
     # email_hash: Encryption.HashField.hash("max@example.com"),
     key_id: 1,
-    password_hash: Encryption.HashField.hash("NoCarbsBeforeMarbs")
+    password: "NoCarbsBeforeMarbs" # Encryption.HashField.hash("NoCarbsBeforeMarbs")
   }
   @invalid_attrs %{}
 
