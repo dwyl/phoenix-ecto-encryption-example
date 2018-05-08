@@ -73,7 +73,7 @@ and _decrypting_ when it is queried.
 
 ### Prerequisites?
 
-+ Basic **`Elixir`** syntax knowledge.
++ Basic **`Elixir`** syntax knowledge: https://github.com/dwyl/learn-elixir
 + Familiarity with the **`Phoenix`** framework.
 + Basic understanding of **`Ecto`**
 (_the module used to interface with databases in elixir/phoenix_)
@@ -222,7 +222,7 @@ which is a good idea for limiting the amount
 of data an "attacker" can decrypt if the database were ever "compromised"._
 
 
-### 3. Define The 5 Functions
+### 3. Define The 6 Functions
 
 We need 4 functions for encrypting, decrypting and hashing the data:
 1. **Encrypt** - to encrypt any personal data we want to store in the database.
@@ -234,6 +234,8 @@ an email without "decrypting".
 The hash of an email address should _always_ be the ***same***.
 5. **Hash Password** (_pseudorandom & **slow**_) - the output of the hash
 should _always_ be ***different*** and relatively **slow** to compute.
+6. **Verify Password** - check a password against the stored `password_hash`
+to confirm that the person "logging-in" has the _correct_ password.
 
 
 > _**Note**: If you have **any questions** on these functions_,
@@ -491,10 +493,6 @@ The two functions we use are:
 def hash(value) do
   Argon2.Base.hash_password(value, Argon2.gen_salt(), [{:argon2_type, 2}])
 end
-
-def verify_pass(password, stored_hash) do
-  Argon2.verify_pass(password, stored_hash)
-end
 ```
 
 The first function `hash/1` accepts a password to be hashed.
@@ -511,12 +509,20 @@ as we saw before in the `encrypt` function; again,
   + https://github.com/riverrun/argon2_elixir/issues/17
   + https://crypto.stackexchange.com/questions/48935/why-use-argon2i-or-argon2d-if-argon2id-exists
 
+#### 3.6 _Verify_ Password
+
 The _corresponding_ function to _check_ (_or "verify"_)
 the password is `verify_pass/2`.
 We need to supply both the `password` and `stored_hash`
 (_the hash that was previously stored in the database
   when the person registered_)
 It then runs `Argon2.verify_pass` which does the checking.
+
+```elixir
+def verify_pass(password, stored_hash) do
+  Argon2.verify_pass(password, stored_hash)
+end
+```
 
 `hash/1` and `verify_pass/2` functions are defined in:
 [`lib/encryption/password_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/password_field.ex)
@@ -533,7 +539,9 @@ as a "Git Submodule" see:
 https://github.com/riverrun/phc-winner-argon2/tree/670229c849b9fe882583688b74eb7dfdc846f9f6
 
 
-### _Understanding_ Custom Ecto Types
+
+
+### 4. _Create_ a Custom Ecto Type
 
 Writing a few functions to `encrypt`, `decrypt` and `hash` data
 is a good _start_, however the real "_magic_" comes from defining
@@ -560,14 +568,78 @@ end
 The _default_ Ecto field types (`:binary`) are a good start.
 But we can do _so much_ better if we define _custom_ Ecto Types!
 
+Ecto Custom Types are a way of automatically "_pre-processing_" data
+before inserting it into (_and reading from_) a database.
+Examples of "pre-processing" include:
++ Custom Validation e.g: phone number or address format.
++ Encrypting / Decrypting
++ Hashing
 
+A custom type expects 4 "callback" functions to be implemented in the file:
++ [`type/0`](https://hexdocs.pm/ecto/Ecto.Type.html#c:type/0) - define the Ecto Type we Ecto to use to _store_ the data for our Custom Type. e.g: `:integer` or `:binary`
++ [`cast/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:cast/1) - "typecasts" (_converts_) the given data to the desired type e.g: Integer to String.
++ [`dump/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:dump/1) - performs the "processing" on the raw data before it get's "dumped" into the Ecto Native Type.
++ [`load/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:load/1) - called when
+loading data from the database and receive an Ecto native type.
 
+Create a new file called: `lib/encryption/encrypted_field.ex`
+and _copy-paste_ the following code into it:
+
+```elixir
+defmodule Encryption.EncryptedField do
+  alias Encryption.AES  # alias our AES encrypt & decrypt functions (3.1 & 3.2)
+
+  @behaviour Ecto.Type  # Check this module conforms to Ecto.type behavior.
+  def type, do: :binary # :binary is the data type ecto uses internally
+
+  # cast/1 simply calls to_string on the value and returns a "success" tuple
+  def cast(value) do
+    {:ok, to_string(value)}
+  end
+
+  # dump/1 is called when the field value is about to be written to the database
+  def dump(value) do
+    ciphertext = value |> to_string |> AES.encrypt
+    {:ok, ciphertext} # ciphertext is :binary data
+  end
+
+  # load/1 is called when the field is loaded from the database
+  def load(value) do
+    {:ok, AES.decrypt(value)} # decrypted data is :string type.
+  end
+
+  # load/2 is called with a specific key_id when the field is loaded from DB
+  def load(value, key_id) do
+    {:ok, AES.decrypt(value, key_id)}
+  end
+end
+```
+
+#### `type/0`
+
+The best data type for storing encrypted data is `:binary`
+(_it uses **half** the "space" of a `:string` for the **same** ciphertext_).
+
+#### `cast/1`
+
+Cast any data type `to_string` before encrypting it.
+(_the encrypted data "ciphertext" will be of_ `:binary` _type_)
+
+#### `dump/1`
+
+Calls the `AES.encrypt` function we defined in section 3.1 (_above_)
+so data is _encrypted_ before we insert into the aatabase.
+
+#### `load/1`
+
+Calls the `AES.decrypt` function so data is _decrypted_ when it is _read_
+from the database.
 
 
 Further reading: https://hexdocs.pm/ecto/Ecto.Type.html
 
 
-
+### 5. _Use_ The Ecto Custom Type in our Schema
 
 
 
