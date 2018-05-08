@@ -214,14 +214,12 @@ You can _view_ this (_empty_) table in pgAdmin: <br />
 ![elixir-encryption-pgadmin-user-table](https://user-images.githubusercontent.com/194400/37981997-1ab4362a-31e7-11e8-9bd8-9566834fc199.png)
 
 
-<small>
-<sup>1</sup>`key_id`:
+<sup>1</sup> `key_id`:
 _for this example/demo we are using a **single** encryption key,
 but because we have the_ `key_id` _column in our database,
 we can easily use **multiple keys** for "**key rotation**"
 which is a good idea for limiting the amount
 of data an "attacker" can decrypt if the database were ever "compromised"._
-</small>
 
 
 ### 3. Define The 5 Functions
@@ -289,6 +287,11 @@ For the purposes of this example/tutorial,
 it's **not strictly necessary**,
 but it is included for "completeness"_.
 
+
+> The full function definitions for AES `encrypt` & `decrypt` are in:
+[`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
+> And tests are in:
+[`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
 #### 3.2 Decrypt
 
@@ -465,6 +468,8 @@ _environment variable_ (_see instructions above_)
 
 > The full file containing these two functions is:
 [`lib/encryption/hash_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/hash_field.ex)
+> And the tests for the functions are:
+[`test/lib/hash_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/hash_field_test.exs)
 
 
 
@@ -516,7 +521,8 @@ It then runs `Argon2.verify_pass` which does the checking.
 `hash/1` and `verify_pass/2` functions are defined in:
 [`lib/encryption/password_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/password_field.ex)
 
-Tests for these functions are
+Tests for these functions are:
+[`test/lib/password_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/password_field_test.exs)
 
 
 > We are using the Elixir implementation of `argon2`
@@ -533,8 +539,42 @@ Writing a few functions to `encrypt`, `decrypt` and `hash` data
 is a good _start_, however the real "_magic_" comes from defining
 these functions as Custom Ecto Types.
 
+When we first created the Ecto Schema for our "user", in
+[Step 2](https://github.com/dwyl/phoenix-ecto-encryption-example#2-create-the-user-schema-database-table)
+(_above_)
+This created the
+[`lib/encryption/user.ex`](https://raw.githubusercontent.com/dwyl/phoenix-ecto-encryption-example/36da851f30670967dd3493f055fb9f7b2649c188/lib/encryption/user.ex)
+file with the following schema:
 
-https://hexdocs.pm/ecto/Ecto.Type.html
+```elixir
+schema "users" do
+  field :email, :binary
+  field :email_hash, :binary
+  field :key_id, :integer
+  field :name, :binary
+  field :password_hash, :binary
+
+  timestamps()
+end
+```
+The _default_ Ecto field types (`:binary`) are a good start.
+But we can do _so much_ better if we define _custom_ Ecto Types!
+
+
+
+
+
+Further reading: https://hexdocs.pm/ecto/Ecto.Type.html
+
+
+
+
+
+
+
+
+
+
 
 ### User Interface ?
 
