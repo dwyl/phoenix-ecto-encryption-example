@@ -615,6 +615,8 @@ defmodule Encryption.EncryptedField do
 end
 ```
 
+Let's step through each of these
+
 #### `type/0`
 
 The best data type for storing encrypted data is `:binary`
@@ -625,19 +627,30 @@ The best data type for storing encrypted data is `:binary`
 Cast any data type `to_string` before encrypting it.
 (_the encrypted data "ciphertext" will be of_ `:binary` _type_)
 
-#### `dump/1`
+#### `dump/1`
 
-Calls the `AES.encrypt` function we defined in section 3.1 (_above_)
+Calls the `AES.encrypt/1` function we defined in section 3.1 (_above_)
 so data is _encrypted_ before we insert into the aatabase.
 
 #### `load/1`
 
-Calls the `AES.decrypt` function so data is _decrypted_ when it is _read_
+Calls the `AES.decrypt/1` function so data is _decrypted_ when it is _read_
 from the database.
+
+#### `load/1`
+
+Calls the `AES.decrypt/2` function so we can decrypt the `ciphertext`
+using a _specific_ encryption key.
+Note: Ecto does _not_ invoke this function directly,
+we are using it in our `user.ex` file. (_see below_)
 
 
 Further reading: https://hexdocs.pm/ecto/Ecto.Type.html
-
+Your `encrypted_field.ex` Custom Ecto Type should look like this:
+[`lib/encryption/encrypted_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/encrypted_field.ex)
+Try and write the _tests_ for the callback functions,
+if you get "stuck", take a look at:
+[`test/lib/encrypted_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/encrypted_field_test.exs)
 
 ### 5. _Use_ The Ecto Custom Type in our Schema
 
