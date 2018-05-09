@@ -652,9 +652,96 @@ Try and write the _tests_ for the callback functions,
 if you get "stuck", take a look at:
 [`test/lib/encrypted_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/encrypted_field_test.exs)
 
-### 5. _Use_ The Ecto Custom Type in our Schema
+### 5. _Use_ The Ecto Custom Type in User Schema
+
+Now that we have defined a Custom Ecto Type `EncryptedField`,
+we can _use_ the Type in our User Schema.
+Add the following line to "alias" the Type
+in the `lib/encryption/user.ex` file:
+
+```elixir
+alias Encryption.EncryptedField
+```
+
+Update the lines for `:email` and `:name` in the schema <br />
+***from***:
+```elixir
+schema "users" do
+  field :email, :binary
+  field :email_hash, :binary
+  field :key_id, :integer
+  field :name, :binary
+  field :password_hash, :binary
+
+  timestamps()
+end
+```
+
+**To**:
+```elixir
+schema "users" do
+  field :email, EncryptedField
+  field :email_hash, :binary
+  field :key_id, :integer
+  field :name, EncryptedField
+  field :password_hash, :binary
+
+  timestamps()
+end
+```
+
+We need to make _two_ further changes:
 
 
+We need a function to encrypt the `:email` and `:name` fields:
+```elixir
+defp encrypt_fields(changeset) do
+  case changeset.valid? do
+    true ->
+      {:ok, encrypted_email} = EncryptedField.dump(changeset.data.email)
+      {:ok, encrypted_name} = EncryptedField.dump(changeset.data.name)
+      changeset
+      |> put_change(:email, encrypted_email)
+      |> put_change(:name, encrypted_name)
+    _ ->
+      changeset
+  end
+end
+```
+
+Then we need to _update_ the `changeset` function
+to include a line calling the `encrypt_fields` function: <br />
+***From***:
+```elixir
+def changeset(%User{} = user, attrs) do
+  user
+  |> cast(attrs, [:name, :email, :email_hash])
+  |> validate_required([:name, :email, :email_hash])
+end
+```
+**To**:
+```elixir
+def changeset(%User{} = user, attrs \\ %{}) do
+  user
+  |> Map.merge(attrs) # merge any attributes into
+  |> cast(attrs, [:name, :email])
+  |> validate_required([:name, :email])
+  |> encrypt_fields   # encrypt the :name and :email fields prior to DB insert
+end
+```
+
+Adding `|> Map.merge(attrs)`
+to the `changeset` function will merge any additional attributes
+before further checks are performed
+and adding `|> encrypt_fields` will encrypt the `:name` and `:email` fields
+prior to the `user` being inserted into the database.
+<br />
+
+### 6. Create Ecto Type for Hashing Email Address
+
+We already added the the _function_ to (SHA256) hash the email address
+above in [**step 3.4**](), now we are going to _use_ it in an Ecto Type.
+Create a a new file: `lib/encryption/hash_field.ex`
 
 
 

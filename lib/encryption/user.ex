@@ -3,14 +3,14 @@ defmodule Encryption.User do
   import Ecto.Changeset
   alias Encryption.{User, Repo, HashField, EncryptedField, PasswordField}
   # alias Encryption.HashField
-  # alias Encryption.EncryptedField, as: Encrypt
+  # alias Encryption.EncryptedField
 
 
   schema "users" do
-    field :email, Encryption.EncryptedField # :binary
+    field :email, EncryptedField # :binary
     field :email_hash, Encryption.HashField # :binary
     field :key_id, :integer
-    field :name, Encryption.EncryptedField # :binary
+    field :name, EncryptedField # :binary
     field :password_hash, Encryption.PasswordField # :binary
 
     timestamps()
@@ -36,24 +36,23 @@ defmodule Encryption.User do
   # end
 
 
+      # User.__schema__(:fields)
+      # # |> IO.inspect
+      # |> Enum.each(fn field ->
+      #   IO.inspect field, label: field
+      #   User.__schema__(:type, field)
+      #   |> IO.inspect
+      # end)
+      # #
+      # # IO.inspect changeset, lable: "changeset"
+
+
   defp encrypt_fields(changeset) do
-
-    # User.__schema__(:fields)
-    # # |> IO.inspect
-    # |> Enum.each(fn field ->
-    #   IO.inspect field, label: field
-    #   User.__schema__(:type, field)
-    #   |> IO.inspect
-    # end)
-    #
-    # IO.inspect changeset, lable: "changeset"
-
     case changeset.valid? do
       true ->
         {:ok, encrypted_email} = EncryptedField.dump(changeset.data.email)
         {:ok, encrypted_name} = EncryptedField.dump(changeset.data.name)
         changeset
-        # |> IO.inspect
         |> put_change(:email, encrypted_email)
         |> put_change(:name, encrypted_name)
       _ ->
