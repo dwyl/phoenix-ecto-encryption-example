@@ -13,16 +13,16 @@ defmodule Encryption.HashFieldTest do
 
   test ".dump converts a value to a sha256 hash" do
     {:ok, hash} = Type.dump("hello")
-    assert hash == <<16, 231, 67, 229, 9, 181, 13, 87, 69, 76, 227, 205, 43,
-              124, 16, 75, 46, 161, 206, 219, 141, 203, 199, 88, 112, 1, 204,
-              189, 109, 248, 22, 254>>
+    assert hash == <<12, 25, 78, 36, 26, 203, 166, 213, 129, 193, 199, 22, 51,
+                    10, 239, 208, 6, 222, 237, 9, 12, 197, 118, 96, 149, 176,
+                    40, 4, 95, 241, 219, 112>>
   end
 
   test ".hash converts a value to a sha256 hash with secret_key_base as salt" do
-    hash = Type.hash("test@example.com")
-    assert hash == <<182, 127, 234, 116, 164, 190, 231, 177, 209, 10, 34, 171,
-              87, 22, 175, 205, 130, 244, 106, 188, 213, 62, 90, 24, 5, 163,
-              125, 76, 65, 181, 167, 181>>
+    hash = Type.hash("alex@example.com")
+    assert hash == <<74, 63, 196, 137, 191, 105, 153, 76, 235, 10, 244, 55,
+                    153, 170, 114, 88, 70, 219, 118, 187, 190, 91, 169, 181,
+                    140, 24, 79, 133, 247, 228, 115, 220>>
   end
 
   test ".load does not modify the hash, since the hash cannot be reversed" do

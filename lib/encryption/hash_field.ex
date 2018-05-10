@@ -16,10 +16,14 @@ defmodule Encryption.HashField do
   end
 
   def hash(value) do
-    :crypto.hash(:sha256, value <> get_salt())
+    :crypto.hash(:sha256, value <> get_salt(value))
   end
 
-  defp get_salt do
-    Application.get_env(:encryption, EncryptionWeb.Endpoint)[:secret_key_base]
+  # Get/use Phoenix secret_key_base as "salt" for one-way hashing Email address
+  # use the *value* to create a *unique* "salt" for each value that is hashed:
+  defp get_salt(value) do
+    secret_key_base =
+      Application.get_env(:encryption, EncryptionWeb.Endpoint)[:secret_key_base]
+    :crypto.hash(:sha256, value <> secret_key_base)
   end
 end

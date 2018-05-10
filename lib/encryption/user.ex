@@ -11,6 +11,7 @@ defmodule Encryption.User do
     field :email_hash, Encryption.HashField # :binary
     field :key_id, :integer
     field :name, EncryptedField # :binary
+    field :password, :binary, virtual: true # virtual means "don't persist"
     field :password_hash, Encryption.PasswordField # :binary
 
     timestamps()
