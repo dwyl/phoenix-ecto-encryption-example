@@ -32,7 +32,8 @@ protect their personal data!
 This tutorial/example is intended as a _comprehensive_ answer
 to the question:
 
-> ["_**How to Encrypt/Decrypt Sensitive Data** in `Elixir` **Before** Inserting (Saving) it into the Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
+> ["_**How to Encrypt/Decrypt Sensitive Data** in `Elixir` **Before** Inserting
+(Saving) it into the Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
 
 ### Technical Overview
 
@@ -53,7 +54,8 @@ recommended many security and cryptography authorities including
  Matthew Green, Niels Ferguson and Bruce Schneier.
 + "Under the hood" we are using Erlang's
 [crypto](http://erlang.org/doc/man/crypto.html) library
-_specifically_ AES with a **256 bit key** (_the same as AWS or Google's KMS service_)
+_specifically_ AES with a **256 bit key**
+(_the same as AWS or Google's KMS service_)
 see: http://erlang.org/doc/man/crypto.html#block_encrypt-4
 + Password Hashing is done using **Argon2**:
 https://en.wikipedia.org/wiki/Argon2
@@ -91,7 +93,8 @@ You will _not_ need any "advanced" mathematical knowledge;
 we are _not_ "inventing" our own encryption or . <br />
 We use existing well-tested/respected algorithms.
 Specifically:
-+ The Advanced Encryption Standard (AES) for _encryption_: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
++ The Advanced Encryption Standard (AES) for _encryption_:
+https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
 + Secure Hash Algorithm (SHA256) for hashing data
 (_for fast lookups_):
 https://en.wikipedia.org/wiki/Secure_Hash_Algorithms
@@ -122,8 +125,6 @@ Including several common questions (_and **answers**_)
 These are "step-by-step" instructions,
 don't skip any step(s).
 
->
-
 ### 1. Creat the `encryption` App
 
 In your Terminal program,
@@ -131,6 +132,7 @@ In your Terminal program,
 ```sh
 mix phx.new encryption
 ```
+
 When you see `Fetch and install dependencies? [Yn]`, <br />
 type `y` and press the `[Enter]` key
 to download and install the dependencies. <br />
@@ -157,17 +159,20 @@ You can also run your app inside IEx (Interactive Elixir) as:
 
     $ iex -S mix phx.server
 ```
-Follow the first instruction
+
+Follow the _first_ instruction
 **change** into the `encryption` directory: <br />
 ```sh
 cd encryption
 ```
-then **Create** the database using the command:
-```
+
+Next ***create*** the database for the App using the command:
+```sh
 mix ecto.create
 ```
+
 You should see the following output:
-```
+```sh
 Compiling 13 files (.ex)
 Generated encryption app
 The database for Encryption.Repo has been created
@@ -178,7 +183,7 @@ The database for Encryption.Repo has been created
 ### 2. Create the `user` Schema (_Database Table_)
 
 In our _example_ `user` database table,
-we are going to store 3 pieces of data.
+we are going to store 3 (_primary_) pieces of data.
 + `name`: the person's name (_encrypted_)
 + `email`: their email address (_encrypted_)
 + `password_hash`: the hashed password (_so the person can login_)
@@ -207,7 +212,8 @@ for storing encrypted data;
 storing it as a `String` would take up more bytes
 for the _same_ data. <br />
 i.e. _wasteful_ without any _benefit_. <br />
-see: https://dba.stackexchange.com/questions/56934/what-is-the-best-way-to-store-a-lot-of-user-encrypted-data
+see:
+https://dba.stackexchange.com/questions/56934/what-is-the-best-way-to-store-a-lot-of-user-encrypted-data
 <br />
 and: https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
 
@@ -247,6 +253,8 @@ should _always_ be ***different*** and relatively **slow** to compute.
 6. **Verify Password** - check a password against the stored `password_hash`
 to confirm that the person "logging-in" has the _correct_ password.
 
+The next 6 sections of the example/tutorial will walk through
+the creation of (_and testing_) these functions step-by-step.
 
 > _**Note**: If you have **any questions** on these functions_,
 ***please ask***: <br />
@@ -254,6 +262,9 @@ to confirm that the person "logging-in" has the _correct_ password.
 
 
 #### 3.1 Encrypt
+
+_All_ personal data in an application should be _encrypted_.
+This allows _decryption_ (_by authorised people_) when required.
 
 The `encrypt` function for encrypting `plaintext`
 is quite simple; (_only 4 lines_):<br />
@@ -275,7 +286,18 @@ Let's "step through" these lines one at a time:
 using the Erlang's crypto library `strong_rand_bytes` function:
 http://erlang.org/doc/man/crypto.html#strong_rand_bytes-1
 The "IV" is ensures that each time a string/block of text/data is encrypted,
-the `ciphertext`.
+the `ciphertext` is _different_.
+
+> Having **different** `ciphertext` each time `plaintext` is encrypted
+is _essential_ for
+["semantic security"](https://en.wikipedia.org/wiki/Semantic_security)
+whereby repeated use of the _same encryption key and algorithm_
+does not allow an "attacker" to infer relationships
+between segments of the encrypted message.
+> [Cryptanalysis](https://en.wikipedia.org/wiki/Cryptanalysis) techniques
+are _well_ "beyond scope" for this example/tutorial,
+but we _highly_ encourage to check-out the "Background Reading" links
+at the end and read up on the subject for deeper understanding.
 
 + Next we use the `get_key` function
 to retrieve the _latest_ encryption key
@@ -303,6 +325,29 @@ For the purposes of this example/tutorial,
 it's **not strictly necessary**,
 but it is included for "completeness"_.
 
+Create a file called `lib/encryption/aes.ex` and copy-paste (_or hand-write_)
+the following:
+
+```elixir
+defmodule Encryption.AES do
+  @aad "AES256GCM" # Use AES 256 Bit Keys for Encryption.
+
+  @spec encrypt(any) :: String.t
+  def encrypt(plaintext) do
+    iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
+    key = get_key()    # get the *latest* key in the list of encryption keys
+    {ciphertext, tag} =
+      :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
+    iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
+  end
+
+  defp get_key do # this is a "dummy function" we will update it in step 3.3
+    <<109, 182, 30, 109, 203, 207, 35, 144, 228, 164, 106, 244, 38, 242,
+    106, 19, 58, 59, 238, 69, 2, 20, 34, 252, 122, 232, 110, 145, 54,
+    241, 65, 16>> # return a random 32 Byte / 128 bit binary to use as key.
+  end
+end
+```
 
 > The full function definitions for AES `encrypt` & `decrypt` are in:
 [`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
@@ -541,16 +586,22 @@ Using `argon2` makes "cracking" a password
 far less likely_) as `bcrypt` has a CPU-bound "work-factor"
 and a "Memory-hard" algorithim which will "slow down" and attacker.
 
-The two functions we use are:
+The first function we need is `hash/1`.
+Create a file: `lib/encryption/password_field.ex`
 
 ```elixir
-def hash(value) do
-  Argon2.Base.hash_password(value, Argon2.gen_salt(), [{:argon2_type, 2}])
+defmodule Encryption.PasswordField do
+
+  def hash(value) do
+    Argon2.Base.hash_password(to_string(value),
+      Argon2.gen_salt(), [{:argon2_type, 2}])
+  end
+
 end
 ```
 
-The first function `hash/1` accepts a password to be hashed.
-`hash/1` calls
+`hash/1` accepts a password to be hashed.
+`hash/1` invokes
 [`Argon2.Base.hash_password/3`](https://hexdocs.pm/argon2_elixir/Argon2.Base.html#hash_password/3)
 passing in 3 arguments:
 + `value` - the value (_password_) to be hashed
@@ -562,6 +613,11 @@ as we saw before in the `encrypt` function; again,
 + `[{:argon2_type, 2}]` - this corresponds to `argon2id` see:
   + https://github.com/riverrun/argon2_elixir/issues/17
   + https://crypto.stackexchange.com/questions/48935/why-use-argon2i-or-argon2d-if-argon2id-exists
+
+##### 3.5.1 Test The `hash/1` Function?
+
+>
+
 
 #### 3.6 _Verify_ Password
 
@@ -819,7 +875,8 @@ the `HashField` needs the same four "ecto callbacks":
 + `load/1` returns the `{:ok, value}` tuple (_unmodified_)
 because a _hash_ cannot be "_undone_".
 
-The _code_ is pretty straightforward. Update the `lib/encryption/hash_field.ex` file to:
+The _code_ is pretty straightforward.
+Update the `lib/encryption/hash_field.ex` file to:
 
 ```elixir
 defmodule Encryption.HashField do
@@ -856,7 +913,8 @@ end
 
 ### 7. _Use_ `HashField` Ecto Type in User Schema
 
-_First_ add the `alias` for `HashField` near the top of the `lib/encryption/user.ex` file. e.g:
+_First_ add the `alias` for `HashField` near the top
+of the `lib/encryption/user.ex` file. e.g:
 ```elixir
 alias Encryption.{User, Repo, EncryptedField, HashField}
 ```
@@ -946,12 +1004,110 @@ We should _test_ this new functionality. e.g:
   end
 ```
 
-For the _full_ user tests see:
+For the _full_ user tests please see:
 [`test/user/user_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/user/user_test.exs)
 
 
+### 8. Create `PasswordField` Ecto Type for Hashing Email Address
+
+We already added the the `hash/1` _function_ in
+[**step 3.5**](https://github.com/dwyl/phoenix-ecto-encryption-example#35-hash-password),
+now we are going to _use_ it in an Ecto Type.
+
+As for the `EncryptedField` and `HashField` Ecto Type in section 4 (_above_),
+the `PasswordField` needs the same four "ecto callbacks":
+
++ `type/0` - `:binary` is appropriate for hashed data
++ `cast/1` - Cast any data type `to_string` before hashing it.
+(_the hashed data will be stored as_ `:binary` _type_)
++ `dump/1` Calls the `hash/1` function we defined in section 3.5 (_above_).
++ `load/1` returns the `{:ok, value}` tuple (_unmodified_)
+because a _hash_ cannot be "_undone_".
+
+The _code_ is pretty straightforward.
+Update the `lib/encryption/password_field.ex` file to:
+
+```elixir
+defmodule Encryption.PasswordField do
+  @behaviour Ecto.Type
+
+  def type, do: :binary
+
+  def cast(value) do
+    {:ok, to_string(value)}
+  end
+
+  def dump(value) do
+    {:ok, hash(value)}
+  end
+
+  def load(value) do
+    {:ok, value}
+  end
+
+  def hash(value) do
+    Argon2.Base.hash_password(to_string(value),
+      Argon2.gen_salt(), [{:argon2_type, 2}])
+  end
+
+  def verify_pass(password, stored_hash) do
+    Argon2.verify_pass(password, stored_hash)
+  end
+end
+```
 
 
+### 9. _Use_ `PasswordField` Ecto Type in User Schema
+
+As before, we need to _use_ the `PasswordField` in our User Schema.
+Remember to `alias` the module at the _top_
+of the `lib/encryption/user.ex` file. e.g:
+```elixir
+alias Encryption.{User, Repo, EncryptedField, HashField, PasswordField}
+```
+
+Now we simply _extend_ the `set_hashed_fields/1` function we defined
+in part 7 (_above_) to set the `:password_hash` field on the `changeset`.
+***From***:
+```elixir
+defp set_hashed_fields(changeset) do
+  case changeset.valid? do
+    true ->
+      changeset
+      |> put_change(:email_hash, HashField.hash(changeset.data.email))
+    _ ->
+      changeset # return unmodified
+  end
+end
+```
+
+**To**:
+```elixir
+defp set_hashed_fields(changeset) do
+  case changeset.valid? do
+    true ->
+      changeset
+      |> put_change(:email_hash, HashField.hash(changeset.data.email))
+      |> put_change(:password_hash, PasswordField.hash(changeset.data.password))
+    _ ->
+      changeset # return unmodified
+  end
+end
+```
+
+That's it.
+
+For the _full_ `user.ex` code see:
+[`lib/encryption/user.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/user.ex)
+and tests please see:
+[`test/user/user_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/user/user_test.exs)
+
+
+ <br />
+### Refactor `set_hashed_fields/1` to use `User.__schema__(:fields)` ...?
+
+
+ <br />
 ### User Interface ?
 
 
@@ -1005,6 +1161,7 @@ will make the output human-readable
 
 ## Useful Links, FAQ & Background Reading
 
++ Bits and Bytes: https://web.stanford.edu/class/cs101/bits-bytes.html
 + Initialization Vector Length:
 https://stackoverflow.com/questions/4608489/how-to-pick-an-appropriate-iv-initialization-vector-for-aes-ctr-nopadding (128 bits is 16 bytes).
 + What is the effect of the different AES key lengths?
