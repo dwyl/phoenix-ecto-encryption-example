@@ -1344,7 +1344,7 @@ https://travis-ci.org/dwyl/phoenix-ecto-encryption-example/jobs/379887597#L833
 > _**Note**: if you are_ `new` _to Travis-CI see_:
 [https://github.com/dwyl/**learn-travis**](https://github.com/dwyl/learn-travis)
 
-#### 10.2
+#### 10.2 Re-order `:email_hash` Field in User Schema
 
 We need to re-order the fields in the User schema so that `:email_hash`
 comes ***before*** `:email` so that the email address
@@ -1474,15 +1474,6 @@ Our hope is that you have _understood_ the flow.
 We plan to extend this tutorial include User Interface
 please "star" the repo if you would find that useful.
 
-
-
- <br />
-<!--
-### User Interface ?
-
-
-> Coming soon ...
--->
 
 
 <br /> <br />
