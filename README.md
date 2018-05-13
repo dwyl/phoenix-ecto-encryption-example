@@ -1294,14 +1294,17 @@ and tests please see:
 
 
  <br />
+<!--
 ### Refactor `set_hashed_fields/1` to use `User.__schema__(:fields)` ...?
+-->
 
 
  <br />
+
 ### User Interface ?
 
 
-
+> Coming soon ...
 
 
 
@@ -1352,6 +1355,8 @@ will make the output human-readable
 ## Useful Links, FAQ & Background Reading
 
 + Bits and Bytes: https://web.stanford.edu/class/cs101/bits-bytes.html
++ Thinking in Ecto - Schemas and Changesets:
+http://cultofmetatron.io/2017/04/22/thinking-in-ecto---schemas-and-changesets/
 + Initialization Vector Length:
 https://stackoverflow.com/questions/4608489/how-to-pick-an-appropriate-iv-initialization-vector-for-aes-ctr-nopadding (128 bits is 16 bytes).
 + What is the effect of the different AES key lengths?
@@ -1487,11 +1492,13 @@ Works with lowercase:  <br />
 
 ## Credits
 
-Inspiration/Credit for this example goes to [@danielberkompas](https://github.com/danielberkompas)
+Inspiration/credit/thanks for this example goes to **Daniel Berkompas**
+[@danielberkompas](https://github.com/danielberkompas)
 for his post: <br />
 https://blog.danielberkompas.com/2015/07/03/encrypting-data-with-ecto <br />
 
-Daniel's post is for [Phoenix `v0.14.0`](https://github.com/danielberkompas/danielberkompas.github.io/blob/c6eb249e5019e782e891bfeb591bc75f084fd97c/_posts/2015-07-03-encrypting-data-with-ecto.md)
+Daniel's post is for
+[Phoenix `v0.14.0`](https://github.com/danielberkompas/danielberkompas.github.io/blob/c6eb249e5019e782e891bfeb591bc75f084fd97c/_posts/2015-07-03-encrypting-data-with-ecto.md)
 which is quite "old" now ...<br />
 therefore a few changes/updates are required. <br />
 e.g: There are no more "**Models**" in Phoenix 1.3 or Ecto callbacks.
@@ -1499,11 +1506,15 @@ e.g: There are no more "**Models**" in Phoenix 1.3 or Ecto callbacks.
 _Also_ his post only includes the "sample code"
 and is _not_ a _complete_ example <br />
 and does _not_ _explain_ the functions & Custom Ecto Types. <br />
-Which means anyone following the post needs to _manually_ copy-paste the code... <br />
-We _prefer_ to include the _complete_ "end state" of any tutorial (_not just "samples"_) <br />
-so that _anyone_ can `git clone` and _`run`_ the code locally to _fully understand_ it.
+Which means anyone following the post needs
+to _manually_ copy-paste the code ...
+and "figure out" the "gaps" themselves to make it work.<br />
+We _prefer_ to include the _complete_ "**end state**"
+of any tutorial (_not just "samples"_) <br />
+so that _anyone_ can `git clone` and _`run`_
+the code locally to _fully understand_ it.
 
-Still, props to Daniel for his post, a _really good_ intro to the topic!
+Still, props to Daniel for his post, a _good intro_ to the topic!
 
 <!--
 I reached out to Daniel on Twitter

@@ -46,6 +46,18 @@ defmodule Encryption.UserTest do
     assert Repo.get_by(User, email: @valid_attrs.email) == nil
   end
 
+  test "User.get_by_email finds the user by their email address" do
+    Repo.insert! User.changeset(%User{}, @valid_attrs)
+    {:ok, user} = User.get_by_email(@valid_attrs.email)
+    assert user.name == @valid_attrs.name
+  end
+
+  test "User.get_by_email user NOT found" do
+    Repo.insert! User.changeset(%User{}, @valid_attrs)
+    {:error, error_msg} = User.get_by_email("unregistered@mail.net")
+    assert error_msg ==  "user not found"
+  end
+
   test "can query on email_hash field because sha256 is deterministic" do
     Repo.insert! User.changeset(%User{}, @valid_attrs)
 

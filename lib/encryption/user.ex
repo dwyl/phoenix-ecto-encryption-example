@@ -22,6 +22,7 @@ defmodule Encryption.User do
     |> Map.merge(attrs)
     |> cast(attrs, [:name, :email])
     |> validate_required([:name, :email])
+    # |> prepare_fields
     |> set_hashed_fields
     |> unique_constraint(:email_hash)
     |> encrypt_fields
@@ -64,5 +65,23 @@ defmodule Encryption.User do
     {:ok, email } = EncryptedField.load(email, key_id)
     {:ok, name} = EncryptedField.load(name, key_id)
     %{user | email: email, name: name, password_hash: password_hash}
+  end
+
+  @doc """
+  Retrieve one user from the database by email address
+  """
+  def get_by_email(email) do
+    result = Repo.get_by(User, email_hash: HashField.hash(email))
+    case result do
+      nil -> # checking for nil case: github.com/elixir-ecto/ecto/issues/1225
+        {:error, "user not found"}
+      _ ->
+      user = %User{
+        name: name, email: email, key_id: key_id, password_hash: password_hash
+      } = result
+      {:ok, email } = EncryptedField.load(email, key_id)
+      {:ok, name} = EncryptedField.load(name, key_id)
+      {:ok, %{user | email: email, name: name, password_hash: password_hash}}
+    end
   end
 end
