@@ -28,8 +28,9 @@ defmodule EncryptionWeb do
 
   def view do
     quote do
-      use Phoenix.View, root: "lib/encryption_web/templates",
-                        namespace: EncryptionWeb
+      use Phoenix.View,
+        root: "lib/encryption_web/templates",
+        namespace: EncryptionWeb
 
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_flash: 2, view_module: 1]

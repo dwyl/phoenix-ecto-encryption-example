@@ -11,7 +11,7 @@ defmodule Encryption.Application do
       # Start the Ecto repository
       supervisor(Encryption.Repo, []),
       # Start the endpoint when the application starts
-      supervisor(EncryptionWeb.Endpoint, []),
+      supervisor(EncryptionWeb.Endpoint, [])
       # Start your own worker by calling: Encryption.Worker.start_link(arg1, arg2, arg3)
       # worker(Encryption.Worker, [arg1, arg2, arg3]),
     ]
