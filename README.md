@@ -15,10 +15,10 @@ for security/privacy.
 that depends on "**login**", it is **_storing_ personal data**
 (_by definition_).
 You might be tempted to think that
-the data is "safe" in the database, but it's _not_.
+data is "safe" in a database, but it's _not_.
 There is an entire ("dark") army/industry of people
 ([_cybercriminals_](https://en.wikipedia.org/wiki/Cybercrime))
-who target websites/apps attempting to "steal" data.
+who target websites/apps attempting to "steal" data by compromising databases.
 All the time you spend _building_ your app,
 they spend trying to "_break_" apps like yours.  
 Don't let the people using your app
@@ -29,11 +29,12 @@ protect their personal data!
 
 ## What?
 
-This tutorial/example is intended as a _comprehensive_ answer
+This example/tutorial is intended as a _comprehensive_ answer
 to the question:
 
-> ["_**How to Encrypt/Decrypt Sensitive Data** in `Elixir` **Before** Inserting
-(Saving) it into the Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
+> ["_**How to Encrypt/Decrypt Sensitive Data** in `Elixir` Apps
+**Before** Inserting (Saving) it into the
+Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
 
 ### Technical Overview
 
@@ -43,27 +44,50 @@ _everyone_ knows that's a "_**bad** idea_":
 https://security.stackexchange.com/questions/18197/why-shouldnt-we-roll-our-own
 <br />
 We are _following_ a **_battle-tested_ industry-standard** approach
-and applying it to our Elixir/Phoenix App.
+and applying it to our Elixir/Phoenix App. <br />
 We are using:
 
 + **Advanced Encryption Standard** (**AES**) to encrypt sensitive data.
   + **Galois/Counter Mode**
 for _symmetric_ key cryptographic block ciphers:
 https://en.wikipedia.org/wiki/Galois/Counter_Mode
-recommended many security and cryptography authorities including
- Matthew Green, Niels Ferguson and Bruce Schneier.
-+ "Under the hood" we are using Erlang's
+recommended many security and cryptography practitioners including
+ [Matthew Green](https://blog.cryptographyengineering.com/),
+ [Niels Ferguson](https://en.wikipedia.org/wiki/Niels_Ferguson)
+ and [Bruce Schneier](https://www.schneier.com/blog/about/)
+  + "Under the hood" we are using Erlang's
 [crypto](http://erlang.org/doc/man/crypto.html) library
-_specifically_ AES with a **256 bit key**
+_specifically_ AES with **256 bit keys**
 (_the same as AWS or Google's KMS service_)
 see: http://erlang.org/doc/man/crypto.html#block_encrypt-4
-+ Password Hashing is done using **Argon2**:
-https://en.wikipedia.org/wiki/Argon2
-specifically: https://github.com/riverrun/argon2_elixir
++ Password "hashing" is performed using the **Argon2**
+key derivation function (KDF): https://en.wikipedia.org/wiki/Argon2 <br />
+_specifically_ the Elixir implementation of `argon2`
+written by David Whitlock: https://github.com/riverrun/argon2_elixir
+which in turn uses the **C** "_reference implementation_"
+as a "Git Submodule".
 
-Don't be "put off" if any of these are _unfamiliar_ to you;
-this example is "step-by-step" and we are _happy_ to answer/clarify
+Don't be "put off" if any of these terms/algorithms/technologies
+are _unfamiliar_ to you; this example is "step-by-step"
+and we are _happy_ to answer/clarify
 _any_ (_relevant and specific_) questions you have!
+
+#### OWASP Cryptographic Rules?
+
+This example/tutorial follows
+the Open Web Application Security Project (**OWASP**)
+Cryptographic and Password rules:
++ [x] Use "***strong approved Authenticated Encryption***"
+based on an ***AES algorithm***.
+  + [x] Use GCM mode of operation for symmetric key cryptographic block ciphers.
++ [x] Only use approved public algorithm **SHA-256** or better for hashing.
++ [x] **Argon2** is the winner of the password hashing competition
+and should be considered as your ***first choice*** for **_new_ applications**.
+
+See:
++ [https://www.owasp.org/index.php/Cryptographic_Storage_Cheat_Sheet](https://www.owasp.org/index.php/Cryptographic_Storage_Cheat_Sheet#Rule_-_Use_strong_approved_Authenticated_Encryption)
++ https://www.owasp.org/index.php/Password_Storage_Cheat_Sheet
+
 
 ## Who?
 
@@ -90,16 +114,8 @@ https://github.com/dwyl/phoenix-chat-example
 ### Crypto Knowledge?
 
 You will _not_ need any "advanced" mathematical knowledge;
-we are _not_ "inventing" our own encryption or . <br />
-We use existing well-tested/respected algorithms.
-Specifically:
-+ The Advanced Encryption Standard (AES) for _encryption_:
-https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
-+ Secure Hash Algorithm (SHA256) for hashing data
-(_for fast lookups_):
-https://en.wikipedia.org/wiki/Secure_Hash_Algorithms
-+ Argon2 (_the "successor" to Bcrypt_) for password hashing:
-https://en.wikipedia.org/wiki/Argon2
+we are _not_ "inventing" our own encryption or
+going into the "internals" of any cyphers/algorithms/schemes. <br />
 
 You do _not_ need to _understand_
 how the encryption/hashing algorithms _work_, <br />
@@ -110,14 +126,30 @@ vs.
 and
 [plaintext](https://en.wikipedia.org/wiki/Plaintext)
 vs.
-[ciphertext](https://en.wikipedia.org/wiki/Ciphertext)
+[ciphertext](https://en.wikipedia.org/wiki/Ciphertext).
 
-> We have included 30+ links in the
+The fact that the example/tutorial complies with all OWASP crypto/hashing rules
+(_see ["OWASP Cryptographic Rules?"]() section above_),
+should be "enough" for _most_ people who just want to focus
+on building their app and don't want to "_go down the rabbit hole_". <br />
+
+_However_ ...  We have included 30+ links in the
 ["Useful Links"](https://github.com/dwyl/phoenix-ecto-encryption-example#useful-links-faq--background-reading)
 section at the _end_ of this readme.
 Including several common questions (_and **answers**_)
+so if you are _curious_, you can
 
 
+### Time Requirement?
+
+Simply _reading_ ("_skimming_") through this example will
+only take **15 minutes**.
+But _following_ the examples on your computer (_to fully understand it_)
+will take around **1 hour** (_including reading a few of the links_).
+
+> _**Invest*** the time up-front to **avoid** on the **embarrassment**
+and [**fines**](https://www.itgovernance.co.uk/dpa-and-gdpr-penalties)
+of a data breach_.
 
 
 ## How?
@@ -127,8 +159,8 @@ don't skip any step(s).
 
 ### 1. Creat the `encryption` App
 
-In your Terminal program,
-**Create** a `new` Phoenix application called "encryption":
+In your Terminal,
+***create*** a `new` Phoenix application called "encryption":
 ```sh
 mix phx.new encryption
 ```
@@ -210,8 +242,8 @@ is that the _data_ stored in them will be _encrypted_
 and `:binary` is the _most efficient_ Ecto/SQL data type
 for storing encrypted data;
 storing it as a `String` would take up more bytes
-for the _same_ data. <br />
-i.e. _wasteful_ without any _benefit_. <br />
+for the _same_ data.
+i.e. _wasteful_ without any _benefit_ to security or performance. <br />
 see:
 https://dba.stackexchange.com/questions/56934/what-is-the-best-way-to-store-a-lot-of-user-encrypted-data
 <br />
@@ -224,17 +256,18 @@ mix ecto.migrate
 ```
 
 Running the `mix ecto.migrate` command will create the
-`users` table in your `encryption_dev` database.
+`users` table in your `encryption_dev` database. <br />
 You can _view_ this (_empty_) table in **pgAdmin**: <br />
 ![elixir-encryption-pgadmin-user-table](https://user-images.githubusercontent.com/194400/37981997-1ab4362a-31e7-11e8-9bd8-9566834fc199.png)
 
 
 <sup>1</sup> `key_id`:
 _The_ `key_id` _column in our_ `users` _database table,
-indicates which encryption key was used to encrypt the data.
+indicates which **encryption key** was used to encrypt the data.
 For this example/demo we are using **two** encryption keys
-to demonstrate key rotation. This **limits** the amount
-of data an "attacker" can decrypt if the database were ever "compromised"
+to **demonstrate key rotation**. Key rotation is a "**best practice**"
+that **limits** the amount of data an "attacker" can decrypt
+if the database were ever "compromised"
 (provided we keep the encryption keys safe that is!)_
 
 
@@ -576,18 +609,30 @@ _environment variable_ (_see instructions above_)
 
 #### 3.5 Hash _Password_
 
-When hashing **passwords**, we want to use the _strongest_ hashing algorithm
-and we also want the hashed value (_or "digest"_) to be different
+When hashing **passwords**, we want to use the **_strongest_ hashing algorithm**
+and we also want the hashed value (_or "digest"_) to be ***different****
 each time the _same_ `plaintext` is hashed
-(_unlike when hashing the email address where we want a consistent digest_).
+(_unlike when hashing the email address
+  where we want a deterministic digest_).
 
 Using `argon2` makes "cracking" a password
 (_in the event of the database being "compromised"
-far less likely_) as `bcrypt` has a CPU-bound "work-factor"
-and a "Memory-hard" algorithim which will "slow down" and attacker.
+far less likely_) as is has _both_ a CPU-bound "work-factor"
+_and_ a "Memory-hard" algorithm which will _significantly_
+"slow down" the attacker.
 
-The first function we need is `hash/1`.
-Create a file: `lib/encryption/password_field.ex`
+##### Add the `argon2` Dependency to
+
+In order to use `argon2` we must add it to our `mix.exs` file:
+in the `defp deps do` (_dependencies_) section, add the following line:
+
+You will need to run
+
+
+##### Define the `hash_password/1` Function
+
+Create a file called `lib/encryption/password_field.ex` in your project.
+The first function we need is `hash_password/1`:
 
 ```elixir
 defmodule Encryption.PasswordField do
@@ -600,11 +645,10 @@ defmodule Encryption.PasswordField do
 end
 ```
 
-`hash/1` accepts a password to be hashed.
-`hash/1` invokes
+`hash/1` accepts a password to be hashed and invokes
 [`Argon2.Base.hash_password/3`](https://hexdocs.pm/argon2_elixir/Argon2.Base.html#hash_password/3)
 passing in 3 arguments:
-+ `value` - the value (_password_) to be hashed
++ `value` - the value (_password_) to be hashed.
 + `Argon2.gen_salt()` - the salt used to initialise the hash function
 note: "behind the scenes" just
 [`:crypto.strong_rand_bytes(16)`](https://github.com/riverrun/argon2_elixir/blob/d283a4f316a2a26e61f032a826ff992a480018c2/lib/argon2.ex#L76)
@@ -614,39 +658,64 @@ as we saw before in the `encrypt` function; again,
   + https://github.com/riverrun/argon2_elixir/issues/17
   + https://crypto.stackexchange.com/questions/48935/why-use-argon2i-or-argon2d-if-argon2id-exists
 
-##### 3.5.1 Test The `hash/1` Function?
+##### 3.5.1 Test the `hash_password/1` Function?
 
->
+In order to _test_ the `PasswordField.hash_password/1` function
+we use the `Argon2.verify_pass` function to _verify_ a password hash.
+
+Create a file called `test/lib/password_field_test.exs`
+and _copy-paste_ (_or hand-type_) the following test:
+
+```elixir
+defmodule Encryption.PasswordFieldTest do
+  use ExUnit.Case
+  alias Encryption.PasswordField, as: Field
+
+  test "hash_password/1 uses Argon2id to Hash a value" do
+    password = "EverythingisAwesome"
+    hash = Field.hash_password(password)
+    verified = Argon2.verify_pass(password, hash)
+    assert verified
+  end
+
+end
+```
+
+Run the test using the command:
+
+```sh
+mix test test/lib/password_field_test.exs
+```
+
+The test should _pass_;
+if _not_, please re-trace the steps.
 
 
 #### 3.6 _Verify_ Password
 
 The _corresponding_ function to _check_ (_or "verify"_)
-the password is `verify_pass/2`.
+the password is `verify_password/2`.
 We need to supply both the `password` and `stored_hash`
 (_the hash that was previously stored in the database
   when the person registered or updated their password_)
 It then runs `Argon2.verify_pass` which does the checking.
 
 ```elixir
-def verify_pass(password, stored_hash) do
+def verify_password(password, stored_hash) do
   Argon2.verify_pass(password, stored_hash)
 end
 ```
 
-`hash/1` and `verify_pass/2` functions are defined in:
+`hash_password/1` and `verify_password/2` functions are defined in:
 [`lib/encryption/password_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/password_field.ex)
+
+
+##### Test for `verify_password/2`
+
+
 
 Tests for these functions are:
 [`test/lib/password_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/password_field_test.exs)
-
-
-> We are using the Elixir implementation of `argon2`
-written by David Whitlock:
-https://github.com/riverrun/argon2_elixir
-Which in turn uses the C "reference implementation"
-as a "Git Submodule" see:
-https://github.com/riverrun/phc-winner-argon2/tree/670229c849b9fe882583688b74eb7dfdc846f9f6
 
 
 
@@ -687,8 +756,8 @@ Examples of "pre-processing" include:
 + Hashing
 
 A custom type expects 4 "callback" functions to be implemented in the file:
-+ [`type/0`](https://hexdocs.pm/ecto/Ecto.Type.html#c:type/0)
-- define the Ecto Type we Ecto to use to _store_ the data
++ [`type/0`](https://hexdocs.pm/ecto/Ecto.Type.html#c:type/0) - define
+the Ecto Type we want Ecto to use to _store_ the data
 for our Custom Type. e.g: `:integer` or `:binary`
 + [`cast/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:cast/1) - "typecasts" (_converts_)
 the given data to the desired type e.g: Integer to String.
@@ -759,13 +828,17 @@ using a _specific_ encryption key.
 Note: Ecto does _not_ invoke this function directly,
 we are using it in our `user.ex` file. (_see below_)
 
+> _**Note**: the_ `load/2` _function is **not required**
+for Ecto Type compliance.
+Further reading_: https://hexdocs.pm/ecto/Ecto.Type.html
 
-Further reading: https://hexdocs.pm/ecto/Ecto.Type.html
-Your `encrypted_field.ex` Custom Ecto Type should look like this:
+_Your_ `encrypted_field.ex` Custom Ecto Type should look like this:
 [`lib/encryption/encrypted_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/encrypted_field.ex)
-Try and write the _tests_ for the callback functions,
+`try` to write the **tests** for the callback functions,
 if you get "stuck", take a look at:
 [`test/lib/encrypted_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/encrypted_field_test.exs)
+
+
 
 ### 5. _Use_ `EncryptedField` Ecto Type in User Schema
 
@@ -862,10 +935,10 @@ _Decryption on data retrieval is covered below._
 
 We already added the the `hash/1` _function_ to (SHA256) hash the email address above in
 [**step 3.4**](https://github.com/dwyl/phoenix-ecto-encryption-example#34-hash-email-address),
+<br />
 now we are going to _use_ it in an Ecto Type.
-Create a a new file: `lib/encryption/hash_field.ex`
 
-As for the `EncryptedField` Ecto Type in section 4 (_above_),
+As we did for the `EncryptedField` Ecto Type in section 4 (_above_),
 the `HashField` needs the same four "ecto callbacks":
 
 + `type/0` - `:binary` is appropriate for hashed data
@@ -1010,7 +1083,7 @@ For the _full_ user tests please see:
 
 ### 8. Create `PasswordField` Ecto Type for Hashing Email Address
 
-We already added the the `hash/1` _function_ in
+We already added the the `hash_password/1` _function_ in
 [**step 3.5**](https://github.com/dwyl/phoenix-ecto-encryption-example#35-hash-password),
 now we are going to _use_ it in an Ecto Type.
 
@@ -1020,7 +1093,8 @@ the `PasswordField` needs the same four "ecto callbacks":
 + `type/0` - `:binary` is appropriate for hashed data
 + `cast/1` - Cast any data type `to_string` before hashing it.
 (_the hashed data will be stored as_ `:binary` _type_)
-+ `dump/1` Calls the `hash/1` function we defined in section 3.5 (_above_).
++ `dump/1` Calls the `hash_password/1` function
+we defined in section 3.5 (_above_).
 + `load/1` returns the `{:ok, value}` tuple (_unmodified_)
 because a _hash_ cannot be "_undone_".
 
@@ -1045,7 +1119,7 @@ defmodule Encryption.PasswordField do
     {:ok, value}
   end
 
-  def hash(value) do
+  def hash_password(value) do
     Argon2.Base.hash_password(to_string(value),
       Argon2.gen_salt(), [{:argon2_type, 2}])
   end
@@ -1088,7 +1162,8 @@ defp set_hashed_fields(changeset) do
     true ->
       changeset
       |> put_change(:email_hash, HashField.hash(changeset.data.email))
-      |> put_change(:password_hash, PasswordField.hash(changeset.data.password))
+      |> put_change(:password_hash,
+        PasswordField.hash_password(changeset.data.password))
     _ ->
       changeset # return unmodified
   end
@@ -1193,6 +1268,8 @@ https://crypto.stackexchange.com/questions/20253/why-we-cant-implement-aes-512-k
 + Generate random alphanumeric string (_used for AES keys_)
 https://stackoverflow.com/questions/12788799/how-to-generate-a-random-alphanumeric-string-with-erlang
 + Singular or Plural controller names?: https://stackoverflow.com/questions/35882394/phoenix-controllers-singular-or-plural
++ What's the purpose of key-rotation?
+https://crypto.stackexchange.com/questions/41796/whats-the-purpose-of-key-rotation
 + Postgres Data Type for storing `bcrypt` hashed passwords: https://stackoverflow.com/questions/33944199/bcrypt-and-postgresql-what-data-type-should-be-used >> `bytea` (_byte_)
 + Do security experts recommend bcrypt? https://security.stackexchange.com/questions/4781/do-any-security-experts-recommend-bcrypt-for-password-storage/6415#6415
 + Hacker News discussion thread "***Don't use `bcrypt`***":
