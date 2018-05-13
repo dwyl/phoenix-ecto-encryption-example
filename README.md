@@ -60,7 +60,7 @@ recommended many security and cryptography practitioners including
 _specifically_ AES with **256 bit keys** <br />
 (_the same as AWS or Google's KMS service_)
 see: http://erlang.org/doc/man/crypto.html#block_encrypt-4
-+ Password "hashing" uses the **Argon2**
++ Password "hashing" using the **Argon2**
 key derivation function (KDF): https://en.wikipedia.org/wiki/Argon2 <br />
 _specifically_ the Elixir implementation of `argon2`
 written by David Whitlock: https://github.com/riverrun/argon2_elixir
@@ -68,7 +68,8 @@ which in turn uses the **C** "_reference implementation_"
 as a "Git Submodule".
 
 > `¯\_(ツ)_/¯...?` Don't be "put off" if any of these terms/algorithms
-are _unfamiliar_ to you; this example is "***step-by-step***" <br />
+are _unfamiliar_ to you; <br />
+this example is "***step-by-step***"
 and we are _happy_ to answer/clarify
 _any_ (_relevant and specific_) questions you have!
 
@@ -281,7 +282,9 @@ if the database were ever "compromised"
 
 ### 3. Define The 6 Functions
 
-We need 6 functions for encrypting, decrypting, hashing and verifying the data:
+We need 6 functions for encrypting, decrypting, hashing and verifying
+the data we will be storing:
+
 1. **Encrypt** - to encrypt any personal data we want to store in the database.
 2. **Decrypt** - decrypt any data that needs to be viewed.
 3. **Get Key** - get the _latest_ encryption/decryption key
@@ -328,7 +331,7 @@ end
 ```
 
 The `encrypt/1` function for encrypting `plaintext` into `ciphertext`
-is quite simple; (_the "body" is only 4 lines_):<br />
+is quite simple; (_the "body" is only 4 lines_).<br />
 
 Let's "step through" these lines one at a time:
 
@@ -359,10 +362,11 @@ so we can use it to `encrypt` the `plaintext`
 
 + Then we use the Erlang `block_encrypt` function
 to encrypt the `plaintext`. <br />
-Using `:aes_gcm` ("Advanced Encryption Standard Galois Counter Mode"):
+Using `:aes_gcm` ("_Advanced Encryption Standard Galois Counter Mode_"):
   + `@aad` is a "module attribute" (_Elixir's equivalent of a "constant"_)
-  is defined in `aes.ex` as `@aad "AES256GCM"` this simply defines the
-  encryption mode we are using which, if you break down the code into 3 parts:
+  is defined in `aes.ex` as `@aad "AES256GCM"` <br />
+  this simply defines the encryption mode we are using which,
+  if you break down the code into 3 parts:
     + AES = Advanced Encryption Standard.
     + 256 = "256 Bit Key"
     + GCM = "Galois Counter Mode"
@@ -381,11 +385,42 @@ it's **not strictly necessary**,
 but it is included for "completeness"_.
 
 
-> The full function definitions for AES `encrypt` & `decrypt` are in:
-[`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
-<br />
+##### Test the `encrypt/1` Function
+
+
+Create a file called `test/lib/aes_test.exs` and _copy-paste_
+the following code into it:
+
+```elixir
+defmodule Encryption.AESTest do
+  use ExUnit.Case
+  alias Encryption.AES
+
+  test ".encrypt includes the random IV in the value" do
+    <<iv::binary-16, ciphertext::binary>> = AES.encrypt("hello")
+
+    assert String.length(iv) != 0
+    assert String.length(ciphertext) != 0
+    assert is_binary(ciphertext)
+  end
+
+  test ".encrypt does not produce the same ciphertext twice" do
+    assert AES.encrypt("hello") != AES.encrypt("hello")
+  end
+end
+```
+
+Run these two tests by running the following command:
+```sh
+mix test test/lib/aes_test.exs
+```
+
+
+> The full function definitions for AES `encrypt/1` & `encrypt/2` are in:
+[`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex) <br />
 > And tests are in:
 [`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
+
 
 #### 3.2 Decrypt
 
@@ -394,7 +429,7 @@ it accepts a "blob" of `ciphertext` (_which as you may recall_),
 has the IV and cypher tag prepended to it, and returns the original `plaintext`.
 
 In the `lib/encryption/aes.ex` file, copy-paste (_or hand-write_)
-the following code:
+the following `decrypt/1` function definition:
 
 ```elixir
 def decrypt(ciphertext) do
@@ -406,8 +441,8 @@ end
 The fist step (line) is to "split" the IV from the `ciphertext`
 using Elixir's binary pattern matching.
 
-> If you are unfamiliar with Elixir binary pattern matching syntax
-`<<iv::binary-16, tag::binary-16, ciphertext::binary>>``
+> If you are unfamiliar with Elixir binary pattern matching syntax:
+`<<iv::binary-16, tag::binary-16, ciphertext::binary>>`
 read the following guide:
 https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
 
@@ -421,7 +456,7 @@ passing in the following parameters:
 + `get_key()` =  get the encryption key used to `encrypt` the `plaintext`
 + `iv` = the original Initialisation Vector used to `encrypt` the `plaintext`
 + `{@aad, ciphertext, tag}` = a Tuple with the encryption "mode",
-`ciphertext` and the `tag` used to encrypt the `ciphertext`
+`ciphertext` and the `tag` that was originally used to encrypt the `ciphertext`.
 
 Finally return _just_ the original `plaintext`.
 
@@ -432,6 +467,19 @@ encryption key for decrypting the_ `ciphertext`.
 _For the purposes of this example/tutorial,
 it's **not strictly necessary**,
 but it is included for "completeness"_.
+
+
+##### Test the `decrypt/1` Function
+
+In the `test/lib/aes_test.exs` add the following test:
+
+```elixir
+test "decrypt/1 ciphertext that was encrypted with default key" do
+  plaintext = "hello" |> AES.encrypt |> AES.decrypt()
+  assert plaintext == "hello"
+end
+```
+Re-run the tests `mix test test/lib/aes_test.exs` and confirm they pass.
 
 > The full `encrypt` & `decrypt` function definitions with `@doc` comments
 are in:
@@ -504,7 +552,10 @@ This is to **demonstrate** that it's **possible** to use **multiple keys**._
 **Environment Variables** this is consistent with the "12 Factor App"
 best practice:_ https://en.wikipedia.org/wiki/Twelve-Factor_App_methodology
 
-#### Generate the `SECRET_KEY_BASE`
+##### Generate the `SECRET_KEY_BASE`
+
+All Phoenix apps have a `secret_key_base` for sessions.
+see: http://phoenixframework.org/blog/sessions
 
 Run the following command to generate a new phoenix secret key:
 
@@ -517,7 +568,7 @@ into your `.env` file after the "equals sign" on the line for `SECRET_KEY_BASE`:
 export SECRET_KEY_BASE={YourSecreteKeyBaseGeneratedUsing-mix_phx.gen.secret}
 ```
 
-Your `.env` file should look _similar_ to
+Your `.env` file should look _similar_ to:
 [`.env_sample`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/.env_sample)
 
 <!--
@@ -538,13 +589,33 @@ Now update the _values_ in your `.env` file the _real_ ones for your App. <br />
 -->
 
 > _**Note**: We are using an_ `.env` _file,
-but if you are using a "Cloud Platform" to deploy your app,
+but if you are using a "Cloud Platform" to deploy your app, <br />
 you could consider using their "Key Management Service"
 for managing encryption keys. eg_: <br />
 + Heroku:
 https://github.com/dwyl/learn-environment-variables#environment-variables-on-heroku
 + AWS: https://aws.amazon.com/kms/
 + Google Cloud: https://cloud.google.com/kms/
+
+
+##### Test the `get_key/0` and `get_key/1` Functions?
+
+Given that `get_key/0` and `get_key/1` are _both_ `defp` (_i.e. "private"_)
+they are not "exported" with the AES module and therefore cannot be _invoked_
+outside of the AES module.
+
+The `get_key/0` and `get_key/1` are _invoked_ by `encrypt/2` and `decrypt/2`
+and thus provided these (public) functions latter functions
+are tested adequately, the "private" functions will be too.
+
+Re-run the tests `mix test test/lib/aes_test.exs` and confirm they _still_ pass.
+
+> The full `encrypt` & `decrypt` function definitions with `@doc` comments
+are in:
+[`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
+<br />
+> And tests are in:
+[`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
 
 #### 3.4 Hash _Email Address_
@@ -577,7 +648,8 @@ user  = Ecto.Adapters.SQL.query!(Encryption.Repo, query, [hash])
 
 > _**Note**: there's a "**built-in**" Ecto_
 [`get_by`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get_by/3) _function
-to perform this type of "SELECT ... WHERE field = value" query **effortlessly**_
+to perform this type of_ <br />
+``"SELECT ... WHERE field = value"`` _query **effortlessly**_
 
 Create a file called `lib/encryption/hash_field.ex`
 and include the following code:
@@ -619,7 +691,7 @@ a ["rainbow table"](https://en.wikipedia.org/wiki/Rainbow_table) from _scratch_.
 _environment variable_ (_see instructions above_)
 
 > The full file containing these two functions is:
-[`lib/encryption/hash_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/hash_field.ex)
+[`lib/encryption/hash_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/hash_field.ex) <br />
 > And the tests for the functions are:
 [`test/lib/hash_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/hash_field_test.exs)
 
@@ -734,9 +806,30 @@ end
 
 ##### Test for `verify_password/2`
 
+To test that our `verify_password/2` function works as _expected_,
+open the file: `test/lib/password_field_test.exs` <br />
+and add the following code to it:
 
+```elixir
+test "verify_password checks the password against the Argon2id Hash" do
+  password = "EverythingisAwesome"
+  hash = Field.hash_password(password)
+  verified = Field.verify_password(password, hash)
+  assert verified
+end
 
-Tests for these functions are:
+test ".verify_password fails if password does NOT match hash" do
+  password = "EverythingisAwesome"
+  hash = Field.hash_password(password)
+  verified = Field.verify_password("LordBusiness", hash)
+  assert !verified
+end
+```
+
+Run the tests: `mix test test/lib/password_field_test.exs`
+and confirm they pass.
+
+If you get stuck, see:
 [`test/lib/password_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/password_field_test.exs)
 
 

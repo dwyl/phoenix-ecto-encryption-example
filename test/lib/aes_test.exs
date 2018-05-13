@@ -31,7 +31,7 @@ defmodule Encryption.AESTest do
     assert plaintext == "hello"
   end
 
-  test "can decrypt_gcm a value" do
+  test "can decrypt/2 a value" do
     keys = Application.get_env(:encryption, Encryption.AES)[:keys]
     key_id = Enum.count(keys) - 1
     ciphertext = AES.encrypt("hello", key_id)
@@ -39,7 +39,7 @@ defmodule Encryption.AESTest do
     assert plaintext == "hello"
   end
 
-  test "can decrypt_gcm with default key" do
+  test "decrypt/1 ciphertext that was encrypted with default key" do
     plaintext = "hello" |> AES.encrypt |> AES.decrypt()
     assert plaintext == "hello"
   end
