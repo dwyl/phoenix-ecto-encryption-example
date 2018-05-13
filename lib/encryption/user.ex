@@ -2,9 +2,6 @@ defmodule Encryption.User do
   use Ecto.Schema
   import Ecto.Changeset
   alias Encryption.{User, Repo, HashField, EncryptedField, PasswordField}
-  # alias Encryption.HashField
-  # alias Encryption.EncryptedField
-
 
   schema "users" do
     field :email, EncryptedField # :binary
@@ -14,15 +11,13 @@ defmodule Encryption.User do
     field :password, :binary, virtual: true # virtual means "don't persist"
     field :password_hash, Encryption.PasswordField # :binary
 
-    timestamps()
+    timestamps() # creates columns for inserted_at and updated_at timestamps. =)
   end
 
   @doc """
   Creates a changeset based on the user and attrs
   """
   def changeset(%User{} = user, attrs \\ %{}) do
-    # IO.inspect attrs, label: "attrs"
-    # IO.inspect user, label: "user"
     user
     |> Map.merge(attrs)
     |> cast(attrs, [:name, :email])
@@ -32,22 +27,7 @@ defmodule Encryption.User do
     |> encrypt_fields
   end
 
-  # defp prepare_fields(changeset, schema) do
-  #
-  # end
-
-
-      # User.__schema__(:fields)
-      # # |> IO.inspect
-      # |> Enum.each(fn field ->
-      #   IO.inspect field, label: field
-      #   User.__schema__(:type, field)
-      #   |> IO.inspect
-      # end)
-      # #
-      # # IO.inspect changeset, lable: "changeset"
-
-
+  # encrypt the two fields we want to be able to decrypt later: email & name.
   defp encrypt_fields(changeset) do
     case changeset.valid? do
       true ->
@@ -61,6 +41,7 @@ defmodule Encryption.User do
     end
   end
 
+  # hash email address for fast+secure lookup and password for strong security.
   defp set_hashed_fields(changeset) do
     case changeset.valid? do
       true ->
@@ -73,6 +54,9 @@ defmodule Encryption.User do
     end
   end
 
+  @doc """
+  Retrieve one user from the database and decrypt the encrypted data.
+  """
   def one() do
     user = %User{
       name: name, email: email, key_id: key_id, password_hash: password_hash } =
