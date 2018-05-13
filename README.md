@@ -45,7 +45,7 @@ We are _using_ a _battle-tested_ industry-standard approach
 and applying it to our Elixir/Phoenix App. We are using:
 
 + Advanced Encryption Standard (AES) to encrypt sensitive data.
-  + Galois/Counter Mode
+  + **Galois/Counter Mode**
 for _symmetric_ key cryptographic block ciphers:
 https://en.wikipedia.org/wiki/Galois/Counter_Mode
 recommended many security and cryptography authorities including
@@ -210,21 +210,22 @@ mix ecto.migrate
 
 Running the `mix ecto.migrate` command will create the
 `users` table in your `encryption_dev` database.
-You can _view_ this (_empty_) table in pgAdmin: <br />
+You can _view_ this (_empty_) table in **pgAdmin**: <br />
 ![elixir-encryption-pgadmin-user-table](https://user-images.githubusercontent.com/194400/37981997-1ab4362a-31e7-11e8-9bd8-9566834fc199.png)
 
 
 <sup>1</sup> `key_id`:
-_for this example/demo we are using a **single** encryption key,
-but because we have the_ `key_id` _column in our database,
-we can easily use **multiple keys** for "**key rotation**"
-which is a good idea for limiting the amount
-of data an "attacker" can decrypt if the database were ever "compromised"._
+_The_ `key_id` _column in our_ `users` _database table,
+indicates which encryption key was used to encrypt the data.
+For this example/demo we are using **two** encryption keys
+to demonstrate key rotation. This **limits** the amount
+of data an "attacker" can decrypt if the database were ever "compromised"
+(provided we keep the encryption keys safe that is!)_
 
 
 ### 3. Define The 6 Functions
 
-We need 4 functions for encrypting, decrypting and hashing the data:
+We need 6 functions for encrypting, decrypting, hashing and verifying the data:
 1. **Encrypt** - to encrypt any personal data we want to store in the database.
 2. **Decrypt** - decrypt any data that needs to be viewed.
 3. **Get Key** - get the _latest_ encryption/decryption key
@@ -257,6 +258,7 @@ def encrypt(plaintext) do
   iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
 end
 ```
+Let's "step through" these lines one at a time:
 
 + First we create a "**strong**" _random_
 [***initialization vector***](https://en.wikipedia.org/wiki/Initialization_vector)
@@ -265,17 +267,20 @@ using the Erlang's crypto library `strong_rand_bytes` function:
 http://erlang.org/doc/man/crypto.html#strong_rand_bytes-1
 The "IV" is ensures that each time a string/block of text/data is encrypted,
 the `ciphertext`.
+
 + Next we use the `get_key` function
 to retrieve the _latest_ encryption key
 so we can use it to `encrypt` the `plaintext` (_defined below_)
+
 + Then we use the Erlang `block_encrypt` function to encrypt the `plaintext`.
 Using `:aes_gcm` ("Advanced Encryption Standard Galois Counter Mode").
   + `@aad` is a "module attribute" (_Elixir's equivalent of a "constant"_)
   is defined in `aes.ex` as `@aad "AES256GCM"` this simply defines the
-  encryption mode we are using which, if you break downt the code into 3 parts:
-    + AES
-    + 256 = "256 Bit Key" (_the )
+  encryption mode we are using which, if you break down the code into 3 parts:
+    + AES = Advanced Encryption Standard.
+    + 256 = "256 Bit Key"
     + GCM = "Galois Counter Mode"
+
 + Finally we "return" the `iv` with the `ciphertag` & `ciphertext`,
 this string of data is what we store in the database.
 Including the IV and ciphertag is _essential_ for allowing decryption,
@@ -439,31 +444,71 @@ https://github.com/dwyl/learn-environment-variables#environment-variables-on-her
 
 #### 3.4 Hash _Email Address_
 
-This is one-way and designed for _speed_.
-We "salt" the email address so that
-the hash has _some_ level of "obfuscation",
-in case the DB is ever "compromised"
-the "attacker" still has to "compute" a "rainbow table"
-from _scratch_.
+The idea behind _hashing_ email addresses is to
+so that we can perform a _lookup_ (_in the database_) to check if the
+email has _already_ been registered/used for app/system.
+
+Imagine that `alex@example.com` has previously used your app.
+The `SHA256` hash (_encoded as [base64](https://hexdocs.pm/elixir/Base.html)_)
+is: `"bbYebcvPI5DkpGr0JvJqEzo77kUCFCL8euhukTbxQRA="`
+
+`try` it for _yourself_ in `iex`:
+```elixir
+iex(1)> email = "alex@example.com"
+"alex@example.com"
+iex(2)> email_hash = :crypto.hash(:sha256, email) |> Base.encode64
+"bbYebcvPI5DkpGr0JvJqEzo77kUCFCL8euhukTbxQRA="
+```
+
+If we store the `email_hash` in the database,
+when `Alex` wants to _log-in_ to the App/System,
+we simply perform a "lookup" in the `users` table:
 
 ```elixir
-def hash(value) do
-  :crypto.hash(:sha256, value <> get_salt())
-end
+hash  = :crypto.hash(:sha256, email) |> Base.encode64
+query = "SELECT * FROM users WHERE email_hash = $1"
+user  = Ecto.Adapters.SQL.query!(Encryption.Repo, query, [hash])
+```
 
-# Get/use Phoenix secret_key_base as "salt" for one-way hashing Email address:
-defp get_salt do
-  Application.get_env(:encryption, EncryptionWeb.Endpoint)[:secret_key_base]
+> _**Note**: there's a "**built-in**" Ecto_
+[`get_by`](https://hexdocs.pm/ecto/Ecto.Repo.html#c:get_by/3) _function
+to perform this type of "SELECT ... WHERE field = value" query **effortlessly**_
+
+Create a file called `lib/encryption/hash_field.ex`
+and include the following code:
+
+```elixir
+defmodule Encryption.HashField do
+
+  def hash(value) do
+    :crypto.hash(:sha256, value <> get_salt(value))
+  end
+
+  # Get/use Phoenix secret_key_base as "salt" for one-way hashing Email address
+  # use the *value* to create a *unique* "salt" for each value that is hashed:
+  defp get_salt(value) do
+    secret_key_base =
+      Application.get_env(:encryption, EncryptionWeb.Endpoint)[:secret_key_base]
+    :crypto.hash(:sha256, value <> secret_key_base)
+  end
 end
 ```
 
-The `hash` function is just using Erlang's `crypto` library
+The `hash/1` function use Erlang's `crypto` library
 [`hash/2`](http://erlang.org/doc/man/crypto.html#hash-2) function.
 + First we tell the `hash/2` function that we want to use `:sha256`
 "SHA 256" is the most widely used/recommended hash; it's both fast and "secure".
 + We then hash the `value` passed in to the `hash/1` function (_we defined_)
-and _concatenate_ it with "salt" using the `get_salt/0` function
-which retrieves the `secret_key_base` environment variable.
+and _concatenate_ it with "salt" using the `get_salt/1` function
+which retrieves the `secret_key_base` environment variable
+and computes a ***unique*** "salt" using the value.
+
+We use the `SHA256` one-way hash for _speed_.
+We "salt" the email address so that
+the hash has _some_ level of "obfuscation",
+in case the DB is ever "compromised"
+the "attacker" still has to "compute"
+a ["rainbow table"](https://en.wikipedia.org/wiki/Rainbow_table) from _scratch_.
 
 > _**Note**: Don't forget to export your_ `SECRET_KEY_BASE`
 _environment variable_ (_see instructions above_)
@@ -515,7 +560,7 @@ The _corresponding_ function to _check_ (_or "verify"_)
 the password is `verify_pass/2`.
 We need to supply both the `password` and `stored_hash`
 (_the hash that was previously stored in the database
-  when the person registered_)
+  when the person registered or updated their password_)
 It then runs `Argon2.verify_pass` which does the checking.
 
 ```elixir
@@ -544,7 +589,8 @@ https://github.com/riverrun/phc-winner-argon2/tree/670229c849b9fe882583688b74eb7
 ### 4. _Create_ a Custom Ecto Type
 
 Writing a few functions to `encrypt`, `decrypt` and `hash` data
-is a good _start_, however the real "_magic_" comes from defining
+is a good _start_, <br />
+however the real "_magic_" comes from defining
 these functions as Custom Ecto Types.
 
 When we first created the Ecto Schema for our "user", in
@@ -582,8 +628,8 @@ A custom type expects 4 "callback" functions to be implemented in the file:
 + [`load/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:load/1) - called when
 loading data from the database and receive an Ecto native type.
 
-Create a new file called: `lib/encryption/encrypted_field.ex`
-and _copy-paste_ the following code into it:
+Let's _update_ the `lib/encryption/encrypted_field.ex` file
+by _copy-pasting_ the following code into it:
 
 ```elixir
 defmodule Encryption.EncryptedField do
@@ -743,7 +789,8 @@ We already added the the _function_ to (SHA256) hash the email address
 above in [**step 3.4**](), now we are going to _use_ it in an Ecto Type.
 Create a a new file: `lib/encryption/hash_field.ex`
 
-
+As for the `EncryptedField` Ecto Type in section 4 (_above_),
+the `HashField` needs the same four "ecto callbacks"
 
 
 
@@ -817,6 +864,8 @@ https://stackoverflow.com/questions/1220751/how-to-choose-an-aes-encryption-mode
 https://crypto.stackexchange.com/questions/14747/gcm-vs-ctrhmac-tradeoffs
 + Galois/Counter Mode for symmetric key cryptographic block ciphers:
 https://en.wikipedia.org/wiki/Galois/Counter_Mode
++ What is the difference between CBC and GCM mode?
+https://crypto.stackexchange.com/questions/2310/what-is-the-difference-between-cbc-and-gcm-mode
 + Ciphertext and tag size and IV transmission with AES in GCM mode:
 https://crypto.stackexchange.com/questions/26783/ciphertext-and-tag-size-and-iv-transmission-with-aes-in-gcm-mode
 + How long (in letters) are encryption keys for AES?
@@ -852,7 +901,7 @@ https://elixirschool.com/en/lessons/specifics/ets
 
 ### Running a Single Test
 
-To run a _single_ test while debugging, use the following syntax:
+To run a _single_ test (_e.g: while debugging_), use the following syntax:
 ```sh
 mix test test/user/user_test.exs:9
 ```
