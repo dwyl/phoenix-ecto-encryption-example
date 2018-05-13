@@ -995,8 +995,9 @@ end
 
 We need to make _two_ further changes:
 
+_First_, we need a function to encrypt the `:email` and `:name` fields.
+In the `user.ex` file add the `encrypt_fields/1`
 
-We need a function to encrypt the `:email` and `:name` fields:
 ```elixir
 defp encrypt_fields(changeset) do
   case changeset.valid? do
@@ -1012,8 +1013,8 @@ defp encrypt_fields(changeset) do
 end
 ```
 
-Then we need to _update_ the `changeset` function
-to include a line calling the `encrypt_fields` function: <br />
+_Second_, we need to _update_ the `changeset` function
+to include a line calling the `encrypt_fields/1` function: <br />
 ***From***:
 ```elixir
 def changeset(%User{} = user, attrs) do
@@ -1148,7 +1149,7 @@ defp set_hashed_fields(changeset) do
 end
 ```
 
-_Finally_, add the `set_hashed_fields` function call in `changeset/2` pipeline
+_Finally_, add the `set_hashed_fields/1` function call in `changeset/2` pipeline
 ***from***:
 ```elixir
 def changeset(%User{} = user, attrs \\ %{}) do
@@ -1288,24 +1289,200 @@ end
 That's it.
 
 For the _full_ `user.ex` code see:
-[`lib/encryption/user.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/user.ex)
+[`lib/encryption/user.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/tree/3659399ec32ca4f07f45d0552b9cf25c359a2456)
 and tests please see:
 [`test/user/user_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/user/user_test.exs)
 
 
  <br />
-<!--
-### Refactor `set_hashed_fields/1` to use `User.__schema__(:fields)` ...?
--->
+
+### 10. Refactor `set_hashed_fields/1` and `encrypt_fields/1`...?
+
+One of the _best_ ways to _confirm_ that you _understood_ the code
+is to attempt to
+[***refactor***](https://en.wikipedia.org/wiki/Code_refactoring) it.
+
+This step is _optional_ (_you can skip it if you're not confident
+with your Elixir skills_), however it is _recommended_ you at least
+_read_ through it.
+
+> _**Note**: in practice we don't tend to re-factor our code until
+we have shipped it, encountered a "bottleneck" (a need for optimisation)
+**or** we need to **extend** some code and want to make it "DRY" first_.
+
+> _**Remember: it's only "refactoring" if there are **complete tests**
+otherwise it's_ ["***roulette***"](https://en.wikipedia.org/wiki/Roulette)!
+(_changing code when you don't have tests,
+will almost **always** result in bugs
+because without tests, not all test cases are considered ..._)
+
+In order for this refactor to succeed we need to follow these 4 steps:
+
+1. Do not _touch_ the tests.
+  + Ensure that the tests all pass before we start refactoring
+  and that coverage is 100%.
+  e.g: https://travis-ci.org/dwyl/phoenix-ecto-encryption-example/jobs/379887597#L833
+2. Update the Schema (_to ensure the data that needs to be hashed
+  is not encrypted before we try to hash it!_)
+3. Create a "generic" function to perform all our data transformations
+that will _replace_ `set_hashed_fields/1` and `encrypt_fields/1`.
+4. Update the `changeset/2` function to _use_ the _new_ function
+and remove the calls to `set_hashed_fields/1` and `encrypt_fields/1`.
+
+#### 10.1 Ensure All Tests Pass
+
+Typically we will create `git commit` (_if we don't already have one_)
+for the "known state" where the tests were passing
+(_before starting the refactor_).
+
+The commit _before_ refactoring the example is:
+https://github.com/dwyl/phoenix-ecto-encryption-example/tree/3659399ec32ca4f07f45d0552b9cf25c359a2456
+
+The corresponding Travis-CI build for this commit is:
+https://travis-ci.org/dwyl/phoenix-ecto-encryption-example/jobs/379887597#L833
+
+> _**Note**: if you are_ `new` _to Travis-CI see_:
+[https://github.com/dwyl/**learn-travis**](https://github.com/dwyl/learn-travis)
+
+#### 10.2
+
+We need to re-order the fields in the User schema so that `:email_hash`
+comes ***before*** `:email` so that the email address
+is _not_ encrypted before being hashed whereby
+the hash would always be different!<br />
+***From***:
+```elixir
+schema "users" do
+  field :email, EncryptedField # :binary
+  field :email_hash, Encryption.HashField # :binary
+  field :key_id, :integer
+  field :name, EncryptedField # :binary
+  field :password, :binary, virtual: true # virtual means "don't persist"
+  field :password_hash, Encryption.PasswordField # :binary
+
+  timestamps() # creates columns for inserted_at and updated_at timestamps. =)
+end
+```
+To:
+```elixir
+schema "users" do
+  field :email_hash, HashField # :binary
+  field :email, EncryptedField # :binary
+  field :key_id, :integer
+  field :name, EncryptedField # :binary
+  field :password, :binary, virtual: true # virtual means "don't persist"
+  field :password_hash, PasswordField # :binary
+
+  timestamps() # creates columns for inserted_at and updated_at timestamps. =)
+end
+```
+
+#### 10.3 Create One Generic (DRY) Function that Replaces Two Specific (WET)
+
+In the `user.ex` file we have _two_ functions that perform _similar_ tasks,
+preparing data to be inserted into the database.
+Specifically: `set_hashed_fields/1` and `encrypt_fields/1` which
+perform hashing and encryption respectively.
+
+```elixir
+defp prepare_fields(changeset) do
+  case changeset.valid? do # don't bother transforming the data if invalid.
+    true ->
+      struct = changeset.data.__struct__  # get name of Ecto Struct. e.g: User
+      fields = struct.__schema__(:fields) # get list of fields in the Struct
+      # create map of data transforms stackoverflow.com/a/29924465/1148249
+      changes = Enum.reduce fields, %{}, fn field, acc ->
+        type = struct.__schema__(:type, field)
+        # only check the changeset if it's "valid" and
+        if String.contains? Atom.to_string(type), "Encryption." do
+          primary = case type do
+            Encryption.HashField -> # "primary" field for :email_hash is :email
+              :email
+            Encryption.PasswordField ->
+              :password
+            _ ->
+             field
+          end
+          data = Map.get(changeset.data, primary)    # get plaintext data
+          {:ok, transformed_value} = type.dump(data) # dump (encrypt/hash)
+          Map.put(acc, field, transformed_value)     # assign key:value to Map
+        else
+          acc  # always return the accumulator to avoid "nil is not a map!"
+        end
+      end
+      %{changeset | changes: changes} # apply the changes to the changeset
+    _ ->
+    changeset # return the changeset unmodified for the next function in pipe
+  end
+end
+```
+
+This function uses
+["**type introspection**"](https://en.wikipedia.org/wiki/Type_introspection)
+to determine which fields are on the **Users*** struct (_schema_)
+we know that hashed fields need the `plaintext` data so we
+return the `primary` field for `:email` and `:password`.
+then loops through those fields and determines what `dump` function
+needs to be applied.
+Finally we apply the `changes` to the `changeset`.
+
+
+#### 10.4 Update `changeset/2` function to use `prepare_fields/1`
+
+The last step is the easiest one. simply update the `changeset/2` function,
+***from***:
+```elixir
+def changeset(%User{} = user, attrs \\ %{}) do
+  user
+  |> Map.merge(attrs)
+  |> cast(attrs, [:name, :email])
+  |> validate_required([:name, :email])
+  |> set_hashed_fields              # set the email_hash field
+  |> unique_constraint(:email_hash) # check email_hash is not already in DB
+  |> encrypt_fields
+end
+```
+
+**To**:
+```elixir
+def changeset(%User{} = user, attrs \\ %{}) do
+  user
+  |> Map.merge(attrs)
+  |> cast(attrs, [:name, :email])
+  |> validate_required([:name, :email])
+  |> prepare_fields # hash and/or encrypt the personal data before db insert!
+  |> unique_constraint(:email_hash) # only after the email has been hashed!
+end
+```
+
+Done!
+Re-run the tests!
+
+
+
+The `user.ex` file now has _fewer_ lines of code
+which are _arguably_ more maintainable.
+
+### Conclusion
+
+We have gone through how to create custom Ecto Types
+in order to define our own functions for handling
+(_transforming_) specific types of data.
+
+Our hope is that you have _understood_ the flow.
+
+We plan to extend this tutorial include User Interface
+please "star" the repo if you would find that useful.
+
 
 
  <br />
-
+<!--
 ### User Interface ?
 
 
 > Coming soon ...
-
+-->
 
 
 <br /> <br />
