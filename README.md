@@ -57,18 +57,18 @@ recommended many security and cryptography practitioners including
  and [Bruce Schneier](https://www.schneier.com/blog/about/)
   + "Under the hood" we are using Erlang's
 [crypto](http://erlang.org/doc/man/crypto.html) library
-_specifically_ AES with **256 bit keys**
+_specifically_ AES with **256 bit keys** <br />
 (_the same as AWS or Google's KMS service_)
 see: http://erlang.org/doc/man/crypto.html#block_encrypt-4
-+ Password "hashing" is performed using the **Argon2**
++ Password "hashing" uses the **Argon2**
 key derivation function (KDF): https://en.wikipedia.org/wiki/Argon2 <br />
 _specifically_ the Elixir implementation of `argon2`
 written by David Whitlock: https://github.com/riverrun/argon2_elixir
 which in turn uses the **C** "_reference implementation_"
 as a "Git Submodule".
 
-Don't be "put off" if any of these terms/algorithms/technologies
-are _unfamiliar_ to you; this example is "step-by-step"
+> `¯\_(ツ)_/¯...?` Don't be "put off" if any of these terms/algorithms
+are _unfamiliar_ to you; this example is "***step-by-step***" <br />
 and we are _happy_ to answer/clarify
 _any_ (_relevant and specific_) questions you have!
 
@@ -80,9 +80,10 @@ Cryptographic and Password rules:
 + [x] Use "***strong approved Authenticated Encryption***"
 based on an ***AES algorithm***.
   + [x] Use GCM mode of operation for symmetric key cryptographic block ciphers.
+  + [x] Keys used for encryption must be rotated at least annually.
 + [x] Only use approved public algorithm **SHA-256** or better for hashing.
 + [x] **Argon2** is the winner of the password hashing competition
-and should be considered as your ***first choice*** for **_new_ applications**.
+and should be your ***first choice*** for **_new_ applications**.
 
 See:
 + [https://www.owasp.org/index.php/Cryptographic_Storage_Cheat_Sheet](https://www.owasp.org/index.php/Cryptographic_Storage_Cheat_Sheet#Rule_-_Use_strong_approved_Authenticated_Encryption)
@@ -128,26 +129,33 @@ and
 vs.
 [ciphertext](https://en.wikipedia.org/wiki/Ciphertext).
 
-The fact that the example/tutorial complies with all OWASP crypto/hashing rules
-(_see ["OWASP Cryptographic Rules?"]() section above_),
+The fact that the example/tutorial follows _all_ OWASP crypto/hashing rules
+(_see:_
+["OWASP Cryptographic Rules?"](https://github.com/dwyl/phoenix-ecto-encryption-example#owasp-cryptographic-rules)
+_section above_),
 should be "enough" for _most_ people who just want to focus
-on building their app and don't want to "_go down the rabbit hole_". <br />
+on building their app and don't want to
+["_go down the rabbit hole_"](https://youtu.be/6IDT3MpSCKI?t=1m2s). <br />
 
 _However_ ...  We have included 30+ links in the
 ["Useful Links"](https://github.com/dwyl/phoenix-ecto-encryption-example#useful-links-faq--background-reading)
 section at the _end_ of this readme.
-Including several common questions (_and **answers**_)
-so if you are _curious_, you can
+The list includes several common questions (_and **answers**_)
+so if you are _curious_, you can [learn](https://youtu.be/hOZnP4dZYK0).
 
+> _**Note**: in the @dwyl Library we have_
+https://www.schneier.com/books/applied_cryptography
+_So, if you're **really curious** let us know!_
 
 ### Time Requirement?
 
 Simply _reading_ ("_skimming_") through this example will
-only take **15 minutes**.
-But _following_ the examples on your computer (_to fully understand it_)
-will take around **1 hour** (_including reading a few of the links_).
+only take **15 minutes**. <br />
+_Following_ the examples on your computer (_to fully understand it_)
+will take around **1 hour** <br />
+(_including reading a few of the links_).
 
-> _**Invest*** the time up-front to **avoid** on the **embarrassment**
+> _**Invest** the time **up-front** to **avoid** on the **embarrassment**
 and [**fines**](https://www.itgovernance.co.uk/dpa-and-gdpr-penalties)
 of a data breach_.
 
@@ -229,7 +237,7 @@ _without_ having to _decrypt_ the email(s) stored in the DB.
 stored in the row. As this is an `id`
 we use an `:integer` to store it in the DB.<sup>1</sup>
 
-Create the `user` schema using generator command:
+Create the `user` schema using the following generator command:
 ```sh
 mix phx.gen.schema User users email:binary email_hash:binary name:binary password_hash:binary key_id:integer
 ```
@@ -287,7 +295,7 @@ should _always_ be ***different*** and relatively **slow** to compute.
 to confirm that the person "logging-in" has the _correct_ password.
 
 The next 6 sections of the example/tutorial will walk through
-the creation of (_and testing_) these functions step-by-step.
+the creation of (_and testing_) these functions.
 
 > _**Note**: If you have **any questions** on these functions_,
 ***please ask***: <br />
@@ -296,23 +304,35 @@ the creation of (_and testing_) these functions step-by-step.
 
 #### 3.1 Encrypt
 
-_All_ personal data in an application should be _encrypted_.
-This allows _decryption_ (_by authorised people_) when required.
-
-The `encrypt` function for encrypting `plaintext`
-is quite simple; (_only 4 lines_):<br />
+Create a file called `lib/encryption/aes.ex` and copy-paste (_or hand-write_)
+the following code:
 
 ```elixir
-def encrypt(plaintext) do
-  iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
-  key = get_key()   # get the *latest* key in the list of encryption keys
-  {ciphertext, tag} =
-    :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
-  iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
+defmodule Encryption.AES do
+  @aad "AES256GCM" # Use AES 256 Bit Keys for Encryption.
+
+  def encrypt(plaintext) do
+    iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
+    key = get_key()    # get the *latest* key in the list of encryption keys
+    {ciphertext, tag} =
+      :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
+    iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
+  end
+
+  defp get_key do # this is a "dummy function" we will update it in step 3.3
+    <<109, 182, 30, 109, 203, 207, 35, 144, 228, 164, 106, 244, 38, 242,
+    106, 19, 58, 59, 238, 69, 2, 20, 34, 252, 122, 232, 110, 145, 54,
+    241, 65, 16>> # return a random 32 Byte / 128 bit binary to use as key.
+  end
 end
 ```
+
+The `encrypt/1` function for encrypting `plaintext` into `ciphertext`
+is quite simple; (_the "body" is only 4 lines_):<br />
+
 Let's "step through" these lines one at a time:
 
++ `encrypt/1` accepts one argument; the `plaintext` to be encrypted.
 + First we create a "**strong**" _random_
 [***initialization vector***](https://en.wikipedia.org/wiki/Initialization_vector)
 (IV) of **16 bytes** (***128 bits***)
@@ -332,12 +352,14 @@ are _well_ "beyond scope" for this example/tutorial,
 but we _highly_ encourage to check-out the "Background Reading" links
 at the end and read up on the subject for deeper understanding.
 
-+ Next we use the `get_key` function
++ Next we use the `get_key/0` function
 to retrieve the _latest_ encryption key
-so we can use it to `encrypt` the `plaintext` (_defined below_)
+so we can use it to `encrypt` the `plaintext`
+(_the "real"_ `get_key/0` _is defined below in section 3.3_).
 
-+ Then we use the Erlang `block_encrypt` function to encrypt the `plaintext`.
-Using `:aes_gcm` ("Advanced Encryption Standard Galois Counter Mode").
++ Then we use the Erlang `block_encrypt` function
+to encrypt the `plaintext`. <br />
+Using `:aes_gcm` ("Advanced Encryption Standard Galois Counter Mode"):
   + `@aad` is a "module attribute" (_Elixir's equivalent of a "constant"_)
   is defined in `aes.ex` as `@aad "AES256GCM"` this simply defines the
   encryption mode we are using which, if you break down the code into 3 parts:
@@ -346,7 +368,7 @@ Using `:aes_gcm` ("Advanced Encryption Standard Galois Counter Mode").
     + GCM = "Galois Counter Mode"
 
 + Finally we "return" the `iv` with the `ciphertag` & `ciphertext`,
-this string of data is what we store in the database.
+this is what we store in the database.
 Including the IV and ciphertag is _essential_ for allowing decryption,
 without these two pieces of data, we would not be able to "reverse" the process.
 
@@ -358,32 +380,10 @@ For the purposes of this example/tutorial,
 it's **not strictly necessary**,
 but it is included for "completeness"_.
 
-Create a file called `lib/encryption/aes.ex` and copy-paste (_or hand-write_)
-the following:
-
-```elixir
-defmodule Encryption.AES do
-  @aad "AES256GCM" # Use AES 256 Bit Keys for Encryption.
-
-  @spec encrypt(any) :: String.t
-  def encrypt(plaintext) do
-    iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
-    key = get_key()    # get the *latest* key in the list of encryption keys
-    {ciphertext, tag} =
-      :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
-    iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
-  end
-
-  defp get_key do # this is a "dummy function" we will update it in step 3.3
-    <<109, 182, 30, 109, 203, 207, 35, 144, 228, 164, 106, 244, 38, 242,
-    106, 19, 58, 59, 238, 69, 2, 20, 34, 252, 122, 232, 110, 145, 54,
-    241, 65, 16>> # return a random 32 Byte / 128 bit binary to use as key.
-  end
-end
-```
 
 > The full function definitions for AES `encrypt` & `decrypt` are in:
 [`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
+<br />
 > And tests are in:
 [`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
@@ -391,7 +391,10 @@ end
 
 The `decrypt` function _reverses_ the work done by `ecrypt`;
 it accepts a "blob" of `ciphertext` (_which as you may recall_),
-has the IV prepended to it, and returns the original `plaintext`.
+has the IV and cypher tag prepended to it, and returns the original `plaintext`.
+
+In the `lib/encryption/aes.ex` file, copy-paste (_or hand-write_)
+the following code:
 
 ```elixir
 def decrypt(ciphertext) do
@@ -420,7 +423,7 @@ passing in the following parameters:
 + `{@aad, ciphertext, tag}` = a Tuple with the encryption "mode",
 `ciphertext` and the `tag` used to encrypt the `ciphertext`
 
-Finally _just_ the original `plaintext` is _returned_.
+Finally return _just_ the original `plaintext`.
 
 > _**Note**: as above with the_ `encrypt/2` _function,
 we have defined an_ `decrypt/2` _"sister" function which accepts
@@ -430,12 +433,19 @@ _For the purposes of this example/tutorial,
 it's **not strictly necessary**,
 but it is included for "completeness"_.
 
+> The full `encrypt` & `decrypt` function definitions with `@doc` comments
+are in:
+[`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
+<br />
+> And tests are in:
+[`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
 #### 3.3 Get (Encryption) Key
 
 You will have noticed that _both_ `encrypt` and `decrypt` functions
-call a `get_key()` function.
-It is not a "built-in" function, we are about to define it!
+call a `get_key/0` function. <br />
+We wrote a "dummy" function in Step 3.1,
+we need to define the "real" function now!
 
 ```elixir
 defp get_key do
@@ -457,9 +467,9 @@ or number of "arguments".
 In the first case `get_key/0` _assumes_ you want the _latest_ Encryption Key.
 the second case `get_key/1` lets you supply the `key_id` to be "looked up":
 
-Both versions of `get_key` call the `get_env` function:
-`Application.get_env(:encryption, Encryption.AES)[:keys]`
-For this to work we need to define the keys as an Environment Variablevariable
+Both versions of `get_key` call the `Application.get_env` function:
+`Application.get_env(:encryption, Encryption.AES)[:keys]` _specifically_.
+For this to work we need to define the keys as an Environment Variable
 and make it available to our App in `config.exs`.
 
 > _For the **complete** file containing these functions see_:
@@ -470,10 +480,6 @@ and make it available to our App in `config.exs`.
 In order for our `get_key/0` and `get_key/1` functions to _work_,
 it needs to be know how to "read" the encryption keys.
 
-> _**Note**: we prefer to store our Encryption Keys as
-**Environment Variables** this is consistent with the "12 Factor App"
-best practice:_ https://en.wikipedia.org/wiki/Twelve-Factor_App_methodology
-
 We need to "export" an Environment Variable
 containing a (_comma-separated_) list of (_one or more_)
 encryption key(s).
@@ -483,13 +489,20 @@ _Copy-paste_ (_and run_) the following command in your terminal:
 ```elixir
 echo "export ENCRYPTION_KEYS='nMdayQpR0aoasLaq1g94FLba+A+wB44JLko47sVQXMg=,L+ZVX8iheoqgqb22mUpATmMDsvVGtafoAeb0KN5uWf0='" >> .env && echo ".env" >> .gitignore
 ```
+
 > For _now_, copy paste this command exactly as it is.<br />
 > When you are deploying your own App,
 > generate your own AES encryption key(s)
-> see below for how to do this.
+> see:
+[How To Generate AES Encryption Keys?](https://github.com/dwyl/phoenix-ecto-encryption-example#how-to-generate-aes-encryption-keys)
+> section below for how to do this. <br />
+
 > _**Note**: there are **two** encryption keys separated by a comma.
 This is to **demonstrate** that it's **possible** to use **multiple keys**._
 
+> _We prefer to store our Encryption Keys as
+**Environment Variables** this is consistent with the "12 Factor App"
+best practice:_ https://en.wikipedia.org/wiki/Twelve-Factor_App_methodology
 
 #### Generate the `SECRET_KEY_BASE`
 
@@ -501,9 +514,13 @@ mix phx.gen.secret
 _copy-paste_ the _output_ (64bit `String`)
 into your `.env` file after the "equals sign" on the line for `SECRET_KEY_BASE`:
 ```yml
-export SECRET_KEY_BASE=YourSecreteKeyBaseGeneratedUsing-mix_phx.gen.secret
+export SECRET_KEY_BASE={YourSecreteKeyBaseGeneratedUsing-mix_phx.gen.secret}
 ```
 
+Your `.env` file should look _similar_ to
+[`.env_sample`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/.env_sample)
+
+<!--
 #### _Alternatively_ Copy The `.env_sample` File
 
 The _easy_ way manage your Environment Variables _locally_
@@ -518,11 +535,12 @@ cp .env_sample .env
 ensure that `.env` is in your [`.gitignore`](https://github.com/nelsonic/phoenix-ecto-encryption-example/blob/0bc9481ab5f063e431244d915691d52103e103a6/.gitignore#L28) file._
 
 Now update the _values_ in your `.env` file the _real_ ones for your App. <br />
+-->
 
-> Note: We are using an `.env` file,
+> _**Note**: We are using an_ `.env` _file,
 but if you are using a "Cloud Platform" to deploy your app,
 you could consider using their "Key Management Service"
-for managing encryption keys. eg: <br />
+for managing encryption keys. eg_: <br />
 + Heroku:
 https://github.com/dwyl/learn-environment-variables#environment-variables-on-heroku
 + AWS: https://aws.amazon.com/kms/
@@ -626,7 +644,11 @@ _and_ a "Memory-hard" algorithm which will _significantly_
 In order to use `argon2` we must add it to our `mix.exs` file:
 in the `defp deps do` (_dependencies_) section, add the following line:
 
-You will need to run
+```elixir
+{:argon2_elixir, "~> 1.2"},  # securely hashing & verifying passwords
+```
+
+You will need to run `mix deps.get` to install the dependency.
 
 
 ##### Define the `hash_password/1` Function
