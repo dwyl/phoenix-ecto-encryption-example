@@ -1,12 +1,10 @@
 defmodule Encryption.UserTest do
-  # use ExUnit.Case
   use Encryption.DataCase
   alias Encryption.User
 
   @valid_attrs %{
     name: "Max",
     email: "max@example.com", # Encryption.AES.encrypt(
-    # email_hash: Encryption.HashField.hash("max@example.com"),
     key_id: 1,
     password: "NoCarbsBeforeMarbs" # Encryption.HashField.hash("NoCarbsBeforeMarbs")
   }
@@ -31,9 +29,6 @@ defmodule Encryption.UserTest do
 
   test "inserting a user sets the :email_hash field" do
     user = Repo.insert! User.changeset(%User{}, @valid_attrs)
-    # hash = Encryption.HashField.hash(@valid_attrs.email)
-    # IO.inspect hash, label: "hash"
-    # IO.inspect user.email_hash, label: "email_hash"
     assert user.email_hash == Encryption.HashField.hash(@valid_attrs.email)
   end
 

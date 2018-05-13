@@ -41,10 +41,11 @@ or using our "own algorithm"
 _everyone_ knows that's a "_**bad** idea_":
 https://security.stackexchange.com/questions/18197/why-shouldnt-we-roll-our-own
 <br />
-We are _using_ a _battle-tested_ industry-standard approach
-and applying it to our Elixir/Phoenix App. We are using:
+We are _following_ a **_battle-tested_ industry-standard** approach
+and applying it to our Elixir/Phoenix App.
+We are using:
 
-+ Advanced Encryption Standard (AES) to encrypt sensitive data.
++ **Advanced Encryption Standard** (**AES**) to encrypt sensitive data.
   + **Galois/Counter Mode**
 for _symmetric_ key cryptographic block ciphers:
 https://en.wikipedia.org/wiki/Galois/Counter_Mode
@@ -52,21 +53,21 @@ recommended many security and cryptography authorities including
  Matthew Green, Niels Ferguson and Bruce Schneier.
 + "Under the hood" we are using Erlang's
 [crypto](http://erlang.org/doc/man/crypto.html) library
-_specifically_ AES with a **256 bit key** (_the same as Google's KMS service_)
+_specifically_ AES with a **256 bit key** (_the same as AWS or Google's KMS service_)
 see: http://erlang.org/doc/man/crypto.html#block_encrypt-4
 + Password Hashing is done using **Argon2**:
 https://en.wikipedia.org/wiki/Argon2
 specifically: https://github.com/riverrun/argon2_elixir
 
 Don't be "put off" if any of these are _unfamiliar_ to you;
-the example is "step-by-step" and we are happy to answer/clarify
-_any_ (_relevant_) questions you have.
+this example is "step-by-step" and we are _happy_ to answer/clarify
+_any_ (_relevant and specific_) questions you have!
 
 ## Who?
 
 This example/tutorial is for _any_ developer
 (_or technical decision maker / "application architect"_) <br />
-who takes personal data protection seriously
+who takes personal data protection _seriously_
 and wants a robust/reliable and "transparent" way <br />
 of _encrypting data_ `before` storing it,
 and _decrypting_ when it is queried.
@@ -81,13 +82,13 @@ and _decrypting_ when it is queried.
 > If you are totally `new` to (_or "rusty" on_)
 Elixir, Phoenix or Ecto,
 we recommend going through our **Phoenix Chat Example**
-(_Beginner's Tutorial_):
+(_Beginner's Tutorial_) _first_:
 https://github.com/dwyl/phoenix-chat-example
 
 ### Crypto Knowledge?
 
 You will _not_ need any "advanced" mathematical knowledge;
-we are _not_ "inventing" our own encryption. <br />
+we are _not_ "inventing" our own encryption or . <br />
 We use existing well-tested/respected algorithms.
 Specifically:
 + The Advanced Encryption Standard (AES) for _encryption_: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
@@ -98,15 +99,21 @@ https://en.wikipedia.org/wiki/Secure_Hash_Algorithms
 https://en.wikipedia.org/wiki/Argon2
 
 You do _not_ need to _understand_
-how the encryption/hashing algorithms work, <br />
-but it is _useful_ to know the _difference_ between
+how the encryption/hashing algorithms _work_, <br />
+but it is _useful_ to **know the _difference_** between
 [encryption](https://en.wikipedia.org/wiki/Encryption)
 vs.
 [hashing](https://en.wikipedia.org/wiki/Hash_function)
 and
 [plaintext](https://en.wikipedia.org/wiki/Plaintext)
 vs.
-[ciphertext](https://en.wikipedia.org/wiki/Ciphertext).
+[ciphertext](https://en.wikipedia.org/wiki/Ciphertext)
+
+> We have included 30+ links in the
+["Useful Links"](https://github.com/dwyl/phoenix-ecto-encryption-example#useful-links-faq--background-reading)
+section at the _end_ of this readme.
+Including several common questions (_and **answers**_)
+
 
 
 
@@ -114,6 +121,8 @@ vs.
 
 These are "step-by-step" instructions,
 don't skip any step(s).
+
+>
 
 ### 1. Creat the `encryption` App
 
@@ -586,7 +595,7 @@ https://github.com/riverrun/phc-winner-argon2/tree/670229c849b9fe882583688b74eb7
 
 
 
-### 4. _Create_ a Custom Ecto Type
+### 4. _Create_ `EncryptedField` Custom Ecto Type
 
 Writing a few functions to `encrypt`, `decrypt` and `hash` data
 is a good _start_, <br />
@@ -622,9 +631,13 @@ Examples of "pre-processing" include:
 + Hashing
 
 A custom type expects 4 "callback" functions to be implemented in the file:
-+ [`type/0`](https://hexdocs.pm/ecto/Ecto.Type.html#c:type/0) - define the Ecto Type we Ecto to use to _store_ the data for our Custom Type. e.g: `:integer` or `:binary`
-+ [`cast/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:cast/1) - "typecasts" (_converts_) the given data to the desired type e.g: Integer to String.
-+ [`dump/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:dump/1) - performs the "processing" on the raw data before it get's "dumped" into the Ecto Native Type.
++ [`type/0`](https://hexdocs.pm/ecto/Ecto.Type.html#c:type/0)
+- define the Ecto Type we Ecto to use to _store_ the data
+for our Custom Type. e.g: `:integer` or `:binary`
++ [`cast/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:cast/1) - "typecasts" (_converts_)
+the given data to the desired type e.g: Integer to String.
++ [`dump/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:dump/1) - performs the "processing"
+on the raw data before it get's "dumped" into the Ecto Native Type.
 + [`load/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:load/1) - called when
 loading data from the database and receive an Ecto native type.
 
@@ -676,14 +689,14 @@ Cast any data type `to_string` before encrypting it.
 #### `dump/1`
 
 Calls the `AES.encrypt/1` function we defined in section 3.1 (_above_)
-so data is _encrypted_ before we insert into the aatabase.
+so data is _encrypted_ before we insert into the database.
 
 #### `load/1`
 
 Calls the `AES.decrypt/1` function so data is _decrypted_ when it is _read_
 from the database.
 
-#### `load/1`
+#### `load/2`
 
 Calls the `AES.decrypt/2` function so we can decrypt the `ciphertext`
 using a _specific_ encryption key.
@@ -698,7 +711,7 @@ Try and write the _tests_ for the callback functions,
 if you get "stuck", take a look at:
 [`test/lib/encrypted_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/encrypted_field_test.exs)
 
-### 5. _Use_ The Ecto Custom Type in User Schema
+### 5. _Use_ `EncryptedField` Ecto Type in User Schema
 
 Now that we have defined a Custom Ecto Type `EncryptedField`,
 we can _use_ the Type in our User Schema.
@@ -783,14 +796,158 @@ and adding `|> encrypt_fields` will encrypt the `:name` and `:email` fields
 prior to the `user` being inserted into the database.
 <br />
 
-### 6. Create Ecto Type for Hashing Email Address
+> _**Note** we have only added the code to_ `encrypt`
+_the_ `:name` _and_ `:email` _fields on the_ `changeset`.
+_We still need to_ `decrypt` _the data when it is retrieved from the database._
+_Decryption on data retrieval is covered below._
 
-We already added the the _function_ to (SHA256) hash the email address
-above in [**step 3.4**](), now we are going to _use_ it in an Ecto Type.
+
+### 6. Create `HashField ` Ecto Type for Hashing Email Address
+
+We already added the the `hash/1` _function_ to (SHA256) hash the email address above in
+[**step 3.4**](https://github.com/dwyl/phoenix-ecto-encryption-example#34-hash-email-address),
+now we are going to _use_ it in an Ecto Type.
 Create a a new file: `lib/encryption/hash_field.ex`
 
 As for the `EncryptedField` Ecto Type in section 4 (_above_),
-the `HashField` needs the same four "ecto callbacks"
+the `HashField` needs the same four "ecto callbacks":
+
++ `type/0` - `:binary` is appropriate for hashed data
++ `cast/1` - Cast any data type `to_string` before hashing it.
+(_the hashed data will be stored as_ `:binary` _type_)
++ `dump/1` Calls the `hash/1` function we defined in section 3.4 (_above_).
++ `load/1` returns the `{:ok, value}` tuple (_unmodified_)
+because a _hash_ cannot be "_undone_".
+
+The _code_ is pretty straightforward. Update the `lib/encryption/hash_field.ex` file to:
+
+```elixir
+defmodule Encryption.HashField do
+  @behaviour Ecto.Type
+
+  def type, do: :binary
+
+  def cast(value) do
+    {:ok, to_string(value)}
+  end
+
+  def dump(value) do
+    {:ok, hash(value)}
+  end
+
+  def load(value) do
+    {:ok, value}
+  end
+
+  def hash(value) do
+    :crypto.hash(:sha256, value <> get_salt(value))
+  end
+
+  # Get/use Phoenix secret_key_base as "salt" for one-way hashing Email address
+  # use the *value* to create a *unique* "salt" for each value that is hashed:
+  defp get_salt(value) do
+    secret_key_base =
+      Application.get_env(:encryption, EncryptionWeb.Endpoint)[:secret_key_base]
+    :crypto.hash(:sha256, value <> secret_key_base)
+  end
+end
+```
+
+
+### 7. _Use_ `HashField` Ecto Type in User Schema
+
+_First_ add the `alias` for `HashField` near the top of the `lib/encryption/user.ex` file. e.g:
+```elixir
+alias Encryption.{User, Repo, EncryptedField, HashField}
+```
+
+
+_Next_, in the `lib/encryption/user.ex` file,
+***update*** the lines for `email_hash` in the users schema<br />
+***from***:
+```elixir
+schema "users" do
+  field :email, EncryptedField
+  field :email_hash, :binary
+  field :key_id, :integer
+  field :name, EncryptedField
+  field :password_hash, :binary
+  timestamps()
+end
+```
+
+**To**:
+```elixir
+schema "users" do
+  field :email, EncryptedField
+  field :email_hash, HashField
+  field :key_id, :integer
+  field :name, EncryptedField
+  field :password_hash, :binary
+
+  timestamps()
+end
+```
+
+Then we need to create a function to perform the _hashing_ of `:email` field:
+```elixir
+defp set_hashed_fields(changeset) do
+  case changeset.valid? do
+    true ->
+      changeset
+      |> put_change(:email_hash, HashField.hash(changeset.data.email))
+    _ ->
+      changeset # return unmodified
+  end
+end
+```
+
+_Finally_, add the `set_hashed_fields` function call in `changeset/2` pipeline
+***from***:
+```elixir
+def changeset(%User{} = user, attrs \\ %{}) do
+  user
+  |> Map.merge(attrs) # merge any attributes into
+  |> cast(attrs, [:name, :email])
+  |> validate_required([:name, :email])
+  |> encrypt_fields   # encrypt the :name and :email fields prior to DB insert
+end
+```
+
+**To**:
+```elixir
+def changeset(%User{} = user, attrs \\ %{}) do
+  user
+  |> Map.merge(attrs)
+  |> cast(attrs, [:name, :email])
+  |> validate_required([:name, :email])
+  |> set_hashed_fields              # set the email_hash field
+  |> unique_constraint(:email_hash) # check email_hash is not already in DB
+  |> encrypt_fields
+end
+```
+
+We should _test_ this new functionality. e.g:
+
+```elixir
+
+  test "inserting a user sets the :email_hash field" do
+    user = Repo.insert! User.changeset(%User{}, @valid_attrs)
+    assert user.email_hash == Encryption.HashField.hash(@valid_attrs.email)
+  end
+
+  test "changeset validates uniqueness of email through email_hash" do
+    Repo.insert! User.changeset(%User{}, @valid_attrs) # first insert works.
+    # Now attempt to insert the *same* user again:
+    {:error, changeset} = Repo.insert User.changeset(%User{}, @valid_attrs)
+    {:ok, message} = Keyword.fetch(changeset.errors, :email_hash)
+    msg = List.first(Tuple.to_list(message))
+    assert "has already been taken" == msg
+  end
+```
+
+For the _full_ user tests see:
+[`test/user/user_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/user/user_test.exs)
 
 
 
@@ -800,17 +957,21 @@ the `HashField` needs the same four "ecto callbacks"
 
 
 
+
+
+<br /> <br />
+
 ### How To Generate AES Encryption Keys?
 
 Encryption keys should be the appropriate length (in bits)
 as required by the chosen algorithm.
 
 > An **AES 128-bit** key can be expressed
-as a hexadecimal string with 32 characters.
+as a hexadecimal string with 32 characters. <br />
 It will require **24 characters** in **base64**.
 
 > An **AES 256-bit** key can be expressed
-as a hexadecimal string with 64 characters.
+as a hexadecimal string with 64 characters. <br />
 It will require **44 characters** in **base64**.
 
 see: https://security.stackexchange.com/a/45334/117318
@@ -958,18 +1119,20 @@ To see this in _action_ run:
 mix test test/user/user_test.exs:40
 ```
 
-### Troubleshooting
+### Stuck / Need Help?
 
 If _you_ get "stuck", please open an issue on GitHub:
 https://github.com/nelsonic/phoenix-ecto-encryption-example/issues
 describing the issue you are facing with as much detail as you can.
 
+<!--
 TIL: app names in Phoneix _must_ be lowercase letters: <br />
 ![lower-case-app-names](https://user-images.githubusercontent.com/194400/35360087-73d69d88-0154-11e8-9f47-d9a9333d1e6c.png)
 (_basic, I know, now..._)
 
 Works with lowercase:  <br />
 ![second-time-lucky](https://user-images.githubusercontent.com/194400/35360183-c522063c-0154-11e8-994a-7516bc0e5c1e.png)
+-->
 
 <br /> <br />
 
@@ -987,11 +1150,11 @@ e.g: There are no more "**Models**" in Phoenix 1.3 or Ecto callbacks.
 _Also_ his post only includes the "sample code"
 and is _not_ a _complete_ example <br />
 and does _not_ _explain_ the functions & Custom Ecto Types. <br />
-Which means anyone following the post needs to _manually_ copy-paste the code...
-We prefer to include the _complete_ "end state" of any tutorial so that
-people can `git clone` and _`run`_ the code locally.
+Which means anyone following the post needs to _manually_ copy-paste the code... <br />
+We _prefer_ to include the _complete_ "end state" of any tutorial (_not just "samples"_) <br />
+so that _anyone_ can `git clone` and _`run`_ the code locally to _fully understand_ it.
 
-Still, props to Daniel for his post, a really good intro to the topic!
+Still, props to Daniel for his post, a _really good_ intro to the topic!
 
 <!--
 I reached out to Daniel on Twitter
