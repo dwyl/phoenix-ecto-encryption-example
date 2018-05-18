@@ -1310,7 +1310,7 @@ _read_ through it.
 we have shipped it, encountered a "bottleneck" (a need for optimisation)
 **or** we need to **extend** some code and want to make it "DRY" first_.
 
-> _**Remember: it's only "refactoring" if there are **complete tests**
+> _**Remember**: it's only "refactoring" if there are **complete tests**
 otherwise it's_ ["***roulette***"](https://en.wikipedia.org/wiki/Roulette)!
 (_changing code when you don't have tests,
 will almost **always** result in bugs
@@ -1456,12 +1456,14 @@ end
 ```
 
 Done!
-Re-run the tests!
-
-
+_Re-run_ the tests!
+you should see:
+https://travis-ci.org/dwyl/phoenix-ecto-encryption-example/builds/380557211#L833
 
 The `user.ex` file now has _fewer_ lines of code
 which are _arguably_ more maintainable.
+The _end_ state of the file _after_ the refactor:
+[`user.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/78ddbc4a085cdb801673cfd960eab0df639009dd/lib/encryption/user.ex)
 
 ### Conclusion
 
