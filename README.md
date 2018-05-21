@@ -1221,7 +1221,7 @@ defmodule Encryption.PasswordField do
   end
 
   def dump(value) do
-    {:ok, hash(value)}
+    {:ok, hash_password(value)}
   end
 
   def load(value) do
