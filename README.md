@@ -1627,8 +1627,11 @@ The `errors` part is:
 ```elixir
 [email_hash: {"has already been taken", []}]
 ```
-A `tuple` _wrapped_ in a `list`.
-(_no idea why this construct, but there must be a **reason** somewhere..._)
+A `tuple` _wrapped_ in a `keyword list`.  
+
+Why this construct? A changeset can have multiple errors, so they're stored as a keyword list, where the _key_ is the field, and the _value_ is the error tuple.  
+The first item in the tuple is the error message, and the second is another keyword list, with additional information that we would use when mapping over the errors in order to make them more user-friendly (though here, it's empty).  
+See the Ecto docs for [`add_error/4`](https://hexdocs.pm/ecto/Ecto.Changeset.html#add_error/4) and [`traverse_errors/2`](https://hexdocs.pm/ecto/Ecto.Changeset.html#traverse_errors/2) for more information.
 
 So to _access_ the error message `"has already been taken"`
 we need some pattern-matching and list popping:
