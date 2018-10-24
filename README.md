@@ -51,7 +51,7 @@ We are using:
   + **Galois/Counter Mode**
 for _symmetric_ key cryptographic block ciphers:
 https://en.wikipedia.org/wiki/Galois/Counter_Mode
-recommended many security and cryptography practitioners including
+recommended by many security and cryptography practitioners including
  [Matthew Green](https://blog.cryptographyengineering.com/),
  [Niels Ferguson](https://en.wikipedia.org/wiki/Niels_Ferguson)
  and [Bruce Schneier](https://www.schneier.com/blog/about/)
@@ -103,7 +103,7 @@ and _decrypting_ when it is queried.
 ### Prerequisites?
 
 + Basic **`Elixir`** syntax knowledge: https://github.com/dwyl/learn-elixir
-+ Familiarity with the **`Phoenix`** framework.
++ Familiarity with the **`Phoenix`** framework: https://github.com/dwyl/learn-phoenix-framework
 + Basic understanding of **`Ecto`**
 (_the module used to interface with databases in elixir/phoenix_)
 
@@ -119,8 +119,8 @@ You will _not_ need any "advanced" mathematical knowledge;
 we are _not_ "inventing" our own encryption or
 going into the "internals" of any cyphers/algorithms/schemes. <br />
 
-You do _not_ need to _understand_
-how the encryption/hashing algorithms _work_, <br />
+**You do _not_ need to _understand_
+how the encryption/hashing algorithms _work_,** <br />
 but it is _useful_ to **know the _difference_** between
 [encryption](https://en.wikipedia.org/wiki/Encryption)
 vs.
@@ -138,7 +138,7 @@ should be "enough" for _most_ people who just want to focus
 on building their app and don't want to
 ["_go down the rabbit hole_"](https://youtu.be/6IDT3MpSCKI?t=1m2s). <br />
 
-_However_ ...  We have included 30+ links in the
+_However_ ... We have included 30+ links in the
 ["Useful Links"](https://github.com/dwyl/phoenix-ecto-encryption-example#useful-links-faq--background-reading)
 section at the _end_ of this readme.
 The list includes several common questions (_and **answers**_)
@@ -166,7 +166,7 @@ of a data breach_.
 These are "step-by-step" instructions,
 don't skip any step(s).
 
-### 1. Creat the `encryption` App
+### 1. Create the `encryption` App
 
 In your Terminal,
 ***create*** a `new` Phoenix application called "encryption":
@@ -513,7 +513,7 @@ as per Erlang/Elixir standard,
 once for each ["arity"](https://en.wikipedia.org/wiki/Arity)
 or number of "arguments".
 In the first case `get_key/0` _assumes_ you want the _latest_ Encryption Key.
-the second case `get_key/1` lets you supply the `key_id` to be "looked up":
+The second case `get_key/1` lets you supply the `key_id` to be "looked up":
 
 Both versions of `get_key` call the `Application.get_env` function:
 `Application.get_env(:encryption, Encryption.AES)[:keys]` _specifically_.
@@ -526,7 +526,7 @@ and make it available to our App in `config.exs`.
 ##### `ENCRYPTION_KEYS` Environment Variable
 
 In order for our `get_key/0` and `get_key/1` functions to _work_,
-it needs to be know how to "read" the encryption keys.
+it needs to be able to "read" the encryption keys.
 
 We need to "export" an Environment Variable
 containing a (_comma-separated_) list of (_one or more_)
@@ -605,7 +605,7 @@ they are not "exported" with the AES module and therefore cannot be _invoked_
 outside of the AES module.
 
 The `get_key/0` and `get_key/1` are _invoked_ by `encrypt/2` and `decrypt/2`
-and thus provided these (public) functions latter functions
+and thus provided these (public) latter functions
 are tested adequately, the "private" functions will be too.
 
 Re-run the tests `mix test test/lib/aes_test.exs` and confirm they _still_ pass.
@@ -621,7 +621,7 @@ are in:
 #### 3.4 Hash _Email Address_
 
 The idea behind _hashing_ email addresses is to
-so that we can perform a _lookup_ (_in the database_) to check if the
+allow us to perform a _lookup_ (_in the database_) to check if the
 email has _already_ been registered/used for app/system.
 
 Imagine that `alex@example.com` has previously used your app.
@@ -700,7 +700,7 @@ _environment variable_ (_see instructions above_)
 #### 3.5 Hash _Password_
 
 When hashing **passwords**, we want to use the **_strongest_ hashing algorithm**
-and we also want the hashed value (_or "digest"_) to be ***different****
+and we also want the hashed value (_or "digest"_) to be ***different***
 each time the _same_ `plaintext` is hashed
 (_unlike when hashing the email address
   where we want a deterministic digest_).
@@ -711,7 +711,7 @@ far less likely_) as is has _both_ a CPU-bound "work-factor"
 _and_ a "Memory-hard" algorithm which will _significantly_
 "slow down" the attacker.
 
-##### Add the `argon2` Dependency to
+##### Add the `argon2` Dependency
 
 In order to use `argon2` we must add it to our `mix.exs` file:
 in the `defp deps do` (_dependencies_) section, add the following line:
@@ -731,7 +731,7 @@ The first function we need is `hash_password/1`:
 ```elixir
 defmodule Encryption.PasswordField do
 
-  def hash(value) do
+  def hash_password(value) do
     Argon2.Base.hash_password(to_string(value),
       Argon2.gen_salt(), [{:argon2_type, 2}])
   end
@@ -739,7 +739,7 @@ defmodule Encryption.PasswordField do
 end
 ```
 
-`hash/1` accepts a password to be hashed and invokes
+`hash_password/1` accepts a password to be hashed and invokes
 [`Argon2.Base.hash_password/3`](https://hexdocs.pm/argon2_elixir/Argon2.Base.html#hash_password/3)
 passing in 3 arguments:
 + `value` - the value (_password_) to be hashed.
@@ -791,7 +791,7 @@ The _corresponding_ function to _check_ (_or "verify"_)
 the password is `verify_password/2`.
 We need to supply both the `password` and `stored_hash`
 (_the hash that was previously stored in the database
-  when the person registered or updated their password_)
+when the person registered or updated their password_)
 It then runs `Argon2.verify_pass` which does the checking.
 
 ```elixir
@@ -1047,7 +1047,7 @@ _We still need to_ `decrypt` _the data when it is retrieved from the database._
 _Decryption on data retrieval is covered below._
 
 
-### 6. Create `HashField ` Ecto Type for Hashing Email Address
+### 6. Create `HashField` Ecto Type for Hashing Email Address
 
 We already added the the `hash/1` _function_ to (SHA256) hash the email address above in
 [**step 3.4**](https://github.com/dwyl/phoenix-ecto-encryption-example#34-hash-email-address),
@@ -1228,7 +1228,7 @@ defmodule Encryption.PasswordField do
   end
 
   def dump(value) do
-    {:ok, hash(value)}
+    {:ok, hash_password(value)}
   end
 
   def load(value) do
