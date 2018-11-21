@@ -36,16 +36,18 @@ defmodule Encryption.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [ # Default Phoenix Dependencies
-      {:phoenix, "~> 1.3.0"},
+      {:phoenix, "~> 1.4.0"},
       {:phoenix_pubsub, "~> 1.0"},
-      {:phoenix_ecto, "~> 3.2"},
+      {:ecto_sql, "~> 3.0"},
+      {:phoenix_ecto, "~> 4.0"},
       {:postgrex, ">= 0.0.0"},
-      {:phoenix_html, "~> 2.10"},
+      {:phoenix_html, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:gettext, "~> 0.11"},
-      {:cowboy, "~> 1.0"},
+      {:plug_cowboy, "~> 2.0"},
+      {:jason, "~> 1.0"},
 
-      {:argon2_elixir, "~> 1.2"},  # securely hashing & verifying passwords
+      {:argon2_elixir, "~> 1.3"},  # securely hashing & verifying passwords
       # Development dependencies:
       {:excoveralls, "~> 0.7.0", only: [:test, :dev]}, # tracking test coverage
       {:dogma, "~> 0.1", only: [:test, :dev]}, # Elixir style
