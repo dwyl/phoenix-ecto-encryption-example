@@ -181,10 +181,10 @@ You should see following in your terminal:
 
 ```sh
 * running mix deps.get
-* running cd assets && npm install && node node_modules/brunch/bin/brunch build
 * running mix deps.compile
+* running cd assets && npm install && node node_modules/webpack/bin/webpack.js --mode development
 
-We are all set! Go into your application by running:
+We are almost there! The following steps are missing:
 
     $ cd encryption
 
@@ -200,7 +200,6 @@ You can also run your app inside IEx (Interactive Elixir) as:
 
     $ iex -S mix phx.server
 ```
-
 Follow the _first_ instruction
 **change** into the `encryption` directory: <br />
 ```sh
@@ -341,7 +340,7 @@ Let's "step through" these lines one at a time:
 (IV) of **16 bytes** (***128 bits***)
 using the Erlang's crypto library `strong_rand_bytes` function:
 http://erlang.org/doc/man/crypto.html#strong_rand_bytes-1
-The "IV" is ensures that each time a string/block of text/data is encrypted,
+The "IV" ensures that each time a string/block of text/data is encrypted,
 the `ciphertext` is _different_.
 
 > Having **different** `ciphertext` each time `plaintext` is encrypted
@@ -597,6 +596,32 @@ https://github.com/dwyl/learn-environment-variables#environment-variables-on-her
 + AWS: https://aws.amazon.com/kms/
 + Google Cloud: https://cloud.google.com/kms/
 
+Update the `config/config.exs` to load the environment variables from the `.env` file into the application.
+Add the following code at the end of your config file:
+
+```elixir
+# run shell command to "source .env" to load the environment variables.
+try do                                     # wrap in "try do"
+  File.stream!("./.env")                   # in case .env file does not exist.
+    |> Stream.map(&String.trim_trailing/1) # remove excess whitespace
+    |> Enum.each(fn line -> line           # loop through each line
+      |> String.replace("export ", "")     # remove "export" from line
+      |> String.split("=", parts: 2)       # split on *first* "=" (equals sign)
+      |> Enum.reduce(fn(value, key) ->     # stackoverflow.com/q/33055834/1148249
+        System.put_env(key, value)         # set each environment variable
+      end)
+    end)
+rescue
+  _ -> IO.puts "no .env file found!"
+end
+
+# Set the Encryption Keys as an "Application Variable" accessible in aes.ex
+config :encryption, Encryption.AES,
+  keys: System.get_env("ENCRYPTION_KEYS") # get the ENCRYPTION_KEYS env variable
+    |> String.replace("'", "")  # remove single-quotes around key list in .env
+    |> String.split(",")        # split the CSV list of keys
+    |> Enum.map(fn key -> :base64.decode(key) end) # decode the key.
+```
 
 ##### Test the `get_key/0` and `get_key/1` Functions?
 
@@ -717,7 +742,7 @@ In order to use `argon2` we must add it to our `mix.exs` file:
 in the `defp deps do` (_dependencies_) section, add the following line:
 
 ```elixir
-{:argon2_elixir, "~> 1.2"},  # securely hashing & verifying passwords
+{:argon2_elixir, "~> 1.3"},  # securely hashing & verifying passwords
 ```
 
 You will need to run `mix deps.get` to install the dependency.
