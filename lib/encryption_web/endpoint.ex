@@ -1,8 +1,9 @@
 defmodule EncryptionWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :encryption
 
-  socket("/socket", EncryptionWeb.UserSocket)
-
+  socket "/socket", EncryptionWeb.UserSocket,
+    websocket: true,
+    longpoll: false
   # Serve at "/" the static files from "priv/static" directory.
   #
   # You should set gzip to true if you are running phoenix.digest
@@ -30,7 +31,7 @@ defmodule EncryptionWeb.Endpoint do
     Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
-    json_decoder: Poison
+    json_decoder: Jason
   )
 
   plug(Plug.MethodOverride)
