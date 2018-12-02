@@ -228,7 +228,7 @@ we are going to store 3 (_primary_) pieces of data.
 + `email`: their email address (_encrypted_)
 + `password_hash`: the hashed password (_so the person can login_)
 
-In _addition_ to the 3 "_primary_" fields
+In _addition_ to the 3 "_primary_" fields,
 we need _**two** more fields_ to store "metadata":
 + `email_hash`: so we can check ("lookup")
 if an email address is in the database
@@ -257,6 +257,56 @@ https://dba.stackexchange.com/questions/56934/what-is-the-best-way-to-store-a-lo
 <br />
 and: https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
 
+Next we need to update our newly created migration file. Open
+`priv/repo/migrations/{timestamp}_create_users.exs`.
+
+> Your migration file will
+have a slightly different name to ours as migration files are named with a
+timestamp when they are created but it will be in the same location.
+
+Update the file ***from***:
+```elixir
+defmodule Encryption.Repo.Migrations.CreateUsers do
+  use Ecto.Migration
+
+  def change do
+    create table(:users) do
+      add(:email, :binary)
+      add(:email_hash, :binary)
+      add(:name, :binary)
+      add(:password_hash, :binary)
+      add(:key_id, :integer)
+
+      timestamps()
+    end
+  end
+end
+```
+
+**To**
+
+```elixir
+defmodule Encryption.Repo.Migrations.CreateUsers do
+  use Ecto.Migration
+
+  def change do
+    create table(:users) do
+      add(:email, :binary)
+      add(:email_hash, :binary)
+      add(:name, :binary)
+      add(:password_hash, :binary)
+      add(:key_id, :integer)
+
+      timestamps()
+    end
+
+    create(unique_index(:users, [:email_hash]))
+  end
+end
+```
+
+The newly added line ensures that we will never be allowed to enter duplicate
+`email_hash` values into our database.
 
 Run the "migration" task to create the tables in the Database:
 ```sh
@@ -265,7 +315,8 @@ mix ecto.migrate
 
 Running the `mix ecto.migrate` command will create the
 `users` table in your `encryption_dev` database. <br />
-You can _view_ this (_empty_) table in **pgAdmin**: <br />
+You can _view_ this (_empty_) table in a PostgreSQL GUI. Here is a screenshot
+from **pgAdmin**: <br />
 ![elixir-encryption-pgadmin-user-table](https://user-images.githubusercontent.com/194400/37981997-1ab4362a-31e7-11e8-9bd8-9566834fc199.png)
 
 
@@ -906,8 +957,7 @@ on the raw data before it get's "dumped" into the Ecto Native Type.
 + [`load/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:load/1) - called when
 loading data from the database and receive an Ecto native type.
 
-Let's _update_ the `lib/encryption/encrypted_field.ex` file
-by _copy-pasting_ the following code into it:
+Create a file called `lib/encryption/encrypted_field.ex` and add the following:
 
 ```elixir
 defmodule Encryption.EncryptedField do
@@ -984,11 +1034,11 @@ if you get "stuck", take a look at:
 
 Now that we have defined a Custom Ecto Type `EncryptedField`,
 we can _use_ the Type in our User Schema.
-Add the following line to "alias" the Type
+Add the following line to "alias" the Type and a User
 in the `lib/encryption/user.ex` file:
 
 ```elixir
-alias Encryption.EncryptedField
+alias Encryption.{EncryptedField, User}
 ```
 
 Update the lines for `:email` and `:name` in the schema <br />
@@ -1042,7 +1092,7 @@ _Second_, we need to _update_ the `changeset` function
 to include a line calling the `encrypt_fields/1` function: <br />
 ***From***:
 ```elixir
-def changeset(%User{} = user, attrs) do
+def changeset(user, attrs) do
   user
   |> cast(attrs, [:name, :email, :email_hash])
   |> validate_required([:name, :email, :email_hash])
@@ -1199,7 +1249,8 @@ def changeset(%User{} = user, attrs \\ %{}) do
 end
 ```
 
-We should _test_ this new functionality. e.g:
+We should _test_ this new functionality. Create the file
+`test/lib/user_test.exs` and add the following:
 
 ```elixir
 
@@ -1265,7 +1316,7 @@ defmodule Encryption.PasswordField do
       Argon2.gen_salt(), [{:argon2_type, 2}])
   end
 
-  def verify_pass(password, stored_hash) do
+  def verify_password(password, stored_hash) do
     Argon2.verify_pass(password, stored_hash)
   end
 end
