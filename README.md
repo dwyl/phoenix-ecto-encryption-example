@@ -1034,11 +1034,11 @@ if you get "stuck", take a look at:
 
 Now that we have defined a Custom Ecto Type `EncryptedField`,
 we can _use_ the Type in our User Schema.
-Add the following line to "alias" the Type
+Add the following line to "alias" the Type and a User
 in the `lib/encryption/user.ex` file:
 
 ```elixir
-alias Encryption.EncryptedField
+alias Encryption.{EncryptedField, User}
 ```
 
 Update the lines for `:email` and `:name` in the schema <br />
@@ -1092,7 +1092,7 @@ _Second_, we need to _update_ the `changeset` function
 to include a line calling the `encrypt_fields/1` function: <br />
 ***From***:
 ```elixir
-def changeset(%User{} = user, attrs) do
+def changeset(user, attrs) do
   user
   |> cast(attrs, [:name, :email, :email_hash])
   |> validate_required([:name, :email, :email_hash])
