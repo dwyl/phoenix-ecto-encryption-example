@@ -1316,7 +1316,7 @@ defmodule Encryption.PasswordField do
       Argon2.gen_salt(), [{:argon2_type, 2}])
   end
 
-  def verify_pass(password, stored_hash) do
+  def verify_password(password, stored_hash) do
     Argon2.verify_pass(password, stored_hash)
   end
 end
