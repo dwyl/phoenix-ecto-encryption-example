@@ -551,53 +551,9 @@ This is to **demonstrate** that it's **possible** to use **multiple keys**._
 **Environment Variables** this is consistent with the "12 Factor App"
 best practice:_ https://en.wikipedia.org/wiki/Twelve-Factor_App_methodology
 
-##### Generate the `SECRET_KEY_BASE`
-
-All Phoenix apps have a `secret_key_base` for sessions.
-see: http://phoenixframework.org/blog/sessions
-
-Run the following command to generate a new phoenix secret key:
-
-```sh
-mix phx.gen.secret
-```
-_copy-paste_ the _output_ (64bit `String`)
-into your `.env` file after the "equals sign" on the line for `SECRET_KEY_BASE`:
-```yml
-export SECRET_KEY_BASE={YourSecreteKeyBaseGeneratedUsing-mix_phx.gen.secret}
-```
-
-Your `.env` file should look _similar_ to:
-[`.env_sample`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/.env_sample)
-
-<!--
-#### _Alternatively_ Copy The `.env_sample` File
-
-The _easy_ way manage your Environment Variables _locally_
-is to have a `.env` file in the _root_ of the project.
-
-_Copy_ the _sample_ one:
-
-```sh
-cp .env_sample .env
-```
-> _**before** doing anything `else`,
-ensure that `.env` is in your [`.gitignore`](https://github.com/nelsonic/phoenix-ecto-encryption-example/blob/0bc9481ab5f063e431244d915691d52103e103a6/.gitignore#L28) file._
-
-Now update the _values_ in your `.env` file the _real_ ones for your App. <br />
--->
-
-> _**Note**: We are using an_ `.env` _file,
-but if you are using a "Cloud Platform" to deploy your app, <br />
-you could consider using their "Key Management Service"
-for managing encryption keys. eg_: <br />
-+ Heroku:
-https://github.com/dwyl/learn-environment-variables#environment-variables-on-heroku
-+ AWS: https://aws.amazon.com/kms/
-+ Google Cloud: https://cloud.google.com/kms/
-
-Update the `config/config.exs` to load the environment variables from the `.env` file into the application.
-Add the following code at the end of your config file:
+Update the `config/config.exs` to load the environment variables from the `.env`
+ file into the application. Add the following code your config file just above
+ `import_config "#{Mix.env()}.exs"`:
 
 ```elixir
 # run shell command to "source .env" to load the environment variables.
@@ -645,6 +601,7 @@ are in:
 
 #### 3.4 Hash _Email Address_
 
+
 The idea behind _hashing_ email addresses is to
 allow us to perform a _lookup_ (_in the database_) to check if the
 email has _already_ been registered/used for app/system.
@@ -676,7 +633,88 @@ user  = Ecto.Adapters.SQL.query!(Encryption.Repo, query, [hash])
 to perform this type of_ <br />
 ``"SELECT ... WHERE field = value"`` _query **effortlessly**_
 
-Create a file called `lib/encryption/hash_field.ex`
+##### Generate the `SECRET_KEY_BASE`
+
+All Phoenix apps have a `secret_key_base` for sessions.
+see: http://phoenixframework.org/blog/sessions
+
+Run the following command to generate a new phoenix secret key:
+
+```sh
+mix phx.gen.secret
+```
+_copy-paste_ the _output_ (64bit `String`)
+into your `.env` file after the "equals sign" on the line for `SECRET_KEY_BASE`:
+```yml
+export SECRET_KEY_BASE={YourSecreteKeyBaseGeneratedUsing-mix_phx.gen.secret}
+```
+
+Your `.env` file should look _similar_ to:
+[`.env_sample`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/.env_sample)
+
+<!--
+#### _Alternatively_ Copy The `.env_sample` File
+
+The _easy_ way manage your Environment Variables _locally_
+is to have a `.env` file in the _root_ of the project.
+
+_Copy_ the _sample_ one:
+
+```sh
+cp .env_sample .env
+```
+> _**before** doing anything `else`,
+ensure that `.env` is in your [`.gitignore`](https://github.com/nelsonic/phoenix-ecto-encryption-example/blob/0bc9481ab5f063e431244d915691d52103e103a6/.gitignore#L28) file._
+
+Now update the _values_ in your `.env` file the _real_ ones for your App. <br />
+-->
+
+> _**Note**: We are using an_ `.env` _file,
+but if you are using a "Cloud Platform" to deploy your app, <br />
+you could consider using their "Key Management Service"
+for managing encryption keys. eg_: <br />
++ Heroku:
+https://github.com/dwyl/learn-environment-variables#environment-variables-on-heroku
++ AWS: https://aws.amazon.com/kms/
++ Google Cloud: https://cloud.google.com/kms/
+
+We now need to update our config files again. Open your `config.exs` file and
+change the the following:
+***from***
+```elixir
+  secret_key_base: "3PXN/6k6qoxqQjWFskGew4r74yp7oJ1UNF6wjvJSHjC5Y5LLIrDpWxrJ84UBphJn",
+  # your secret_key_base will be different but that is fine.
+```
+
+**To**
+```elixir
+  secret_key_base: System.get_env("SECRET_KEY_BASE"),
+```
+
+As mentioned above, all Phoenix applications come with a `secret_key_base`.
+Instead of using this default one, we have told our application to use the new
+one that we added to our `.env` file.
+
+Now we need to edit our `config/test.exs` file. Change the following:
+***from***
+```elixir
+config :encryption, EncryptionWeb.Endpoint,
+  http: [port: 4001],
+  server: false
+```
+
+**To**
+```elixir
+config :encryption, EncryptionWeb.Endpoint,
+  http: [port: 4001],
+  server: false,
+  secret_key_base: "3PXN/6k6qoxqQjWFskGew4r74yp7oJ1UNF6wjvJSHjC5Y5LLIrDpWxrJ84UBphJn"
+```
+
+By adding the previous code block we will now have a `secret_key_base` which
+we will be able to use for testing.
+
+Next, create a file called `lib/encryption/hash_field.ex`
 and include the following code:
 
 ```elixir
