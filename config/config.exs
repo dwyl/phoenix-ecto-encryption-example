@@ -23,9 +23,6 @@ config :logger, :console,
   metadata: [:request_id]
 
 config :phoenix, :json_library, Jason
-# Import environment specific config. This must remain at the bottom
-# of this file so it over rides the configuration defined above.
-import_config "#{Mix.env}.exs"
 
 # run shell command to "source .env" to load the environment variables.
 try do                                     # wrap in "try do"
@@ -51,3 +48,7 @@ config :encryption, Encryption.AES,
 
 config :argon2_elixir,
   argon2_type: 2
+
+# Import environment specific config. This must remain at the bottom
+# of this file so it over rides the configuration defined above.
+import_config "#{Mix.env}.exs"
