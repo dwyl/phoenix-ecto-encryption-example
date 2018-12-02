@@ -228,7 +228,7 @@ we are going to store 3 (_primary_) pieces of data.
 + `email`: their email address (_encrypted_)
 + `password_hash`: the hashed password (_so the person can login_)
 
-In _addition_ to the 3 "_primary_" fields
+In _addition_ to the 3 "_primary_" fields,
 we need _**two** more fields_ to store "metadata":
 + `email_hash`: so we can check ("lookup")
 if an email address is in the database
@@ -265,7 +265,8 @@ mix ecto.migrate
 
 Running the `mix ecto.migrate` command will create the
 `users` table in your `encryption_dev` database. <br />
-You can _view_ this (_empty_) table in **pgAdmin**: <br />
+You can _view_ this (_empty_) table in a PostgreSQL GUI. Here is a screenshot
+from **pgAdmin**: <br />
 ![elixir-encryption-pgadmin-user-table](https://user-images.githubusercontent.com/194400/37981997-1ab4362a-31e7-11e8-9bd8-9566834fc199.png)
 
 
@@ -906,8 +907,7 @@ on the raw data before it get's "dumped" into the Ecto Native Type.
 + [`load/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:load/1) - called when
 loading data from the database and receive an Ecto native type.
 
-Let's _update_ the `lib/encryption/encrypted_field.ex` file
-by _copy-pasting_ the following code into it:
+Create a file called `lib/encryption/encrypted_field.ex` and add the following:
 
 ```elixir
 defmodule Encryption.EncryptedField do
@@ -1199,7 +1199,8 @@ def changeset(%User{} = user, attrs \\ %{}) do
 end
 ```
 
-We should _test_ this new functionality. e.g:
+We should _test_ this new functionality. Create the file
+`test/lib/user_test.exs` and add the following:
 
 ```elixir
 
