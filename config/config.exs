@@ -12,7 +12,7 @@ config :encryption,
 # Configures the endpoint
 config :encryption, EncryptionWeb.Endpoint,
   url: [host: "localhost"],
-  secret_key_base: "3PXN/6k6qoxqQjWFskGew4r74yp7oJ1UNF6wjvJSHjC5Y5LLIrDpWxrJ84UBphJn",
+  secret_key_base: System.get_env("SECRET_KEY_BASE"),
   render_errors: [view: EncryptionWeb.ErrorView, accepts: ~w(html json)],
   pubsub: [name: Encryption.PubSub,
            adapter: Phoenix.PubSub.PG2]
