@@ -12,7 +12,7 @@ config :encryption,
 # Configures the endpoint
 config :encryption, EncryptionWeb.Endpoint,
   url: [host: "localhost"],
-  secret_key_base: "3PXN/6k6qoxqQjWFskGew4r74yp7oJ1UNF6wjvJSHjC5Y5LLIrDpWxrJ84UBphJn",
+  secret_key_base: System.get_env("SECRET_KEY_BASE"),
   render_errors: [view: EncryptionWeb.ErrorView, accepts: ~w(html json)],
   pubsub: [name: Encryption.PubSub,
            adapter: Phoenix.PubSub.PG2]
@@ -23,9 +23,6 @@ config :logger, :console,
   metadata: [:request_id]
 
 config :phoenix, :json_library, Jason
-# Import environment specific config. This must remain at the bottom
-# of this file so it over rides the configuration defined above.
-import_config "#{Mix.env}.exs"
 
 # run shell command to "source .env" to load the environment variables.
 try do                                     # wrap in "try do"
@@ -51,3 +48,7 @@ config :encryption, Encryption.AES,
 
 config :argon2_elixir,
   argon2_type: 2
+
+# Import environment specific config. This must remain at the bottom
+# of this file so it over rides the configuration defined above.
+import_config "#{Mix.env}.exs"
