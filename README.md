@@ -257,6 +257,56 @@ https://dba.stackexchange.com/questions/56934/what-is-the-best-way-to-store-a-lo
 <br />
 and: https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
 
+Next we need to update our newly created migration file. Open
+`priv/repo/migrations/{timestamp}_create_users.exs`.
+
+> Your migration file will
+have a slightly different name to ours as migration files are named with a
+timestamp when they are created but it will be in the same location.
+
+Update the file ***from***:
+```elixir
+defmodule Encryption.Repo.Migrations.CreateUsers do
+  use Ecto.Migration
+
+  def change do
+    create table(:users) do
+      add(:email, :binary)
+      add(:email_hash, :binary)
+      add(:name, :binary)
+      add(:password_hash, :binary)
+      add(:key_id, :integer)
+
+      timestamps()
+    end
+  end
+end
+```
+
+**To**
+
+```elixir
+defmodule Encryption.Repo.Migrations.CreateUsers do
+  use Ecto.Migration
+
+  def change do
+    create table(:users) do
+      add(:email, :binary)
+      add(:email_hash, :binary)
+      add(:name, :binary)
+      add(:password_hash, :binary)
+      add(:key_id, :integer)
+
+      timestamps()
+    end
+
+    create(unique_index(:users, [:email_hash]))
+  end
+end
+```
+
+The newly added line ensures that we will never be allowed to enter duplicate
+`email_hash` values into our database.
 
 Run the "migration" task to create the tables in the Database:
 ```sh
