@@ -40,38 +40,36 @@ defmodule Encryption.User do
   # prepare_fields/1 takes changeset and applies the required "dump" function.
   # only apply the "dump" function if the changeset is valid
   defp prepare_fields(%Ecto.Changeset{valid?: true} = changeset) do
-    # 1. get the list of fields
-    # 2. filter this list into custom fields only (as only these require
-    #    further transformations)
-    # 3. finally, get the data source for each field and invoke dump/1
-    #    to get the final data for this field
+    # 1) get each field and their respective type
+    # 2) check if the type is a custom type (see is_custom_type?/1)
+    # 3) if it is a custom type, check @field_source_map to see which field
+    #    supplies the input data
+    # 4) proceed to apply `dump/1` to transform the data into the final value
 
     changes =
-      changeset.types
-      |> Map.keys()
-      |> Enum.filter(&is_custom_type?(changeset, &1))
-      |> Enum.reduce(%{}, fn field, accumulator ->
-        data_source = Keyword.get(@field_source_map, field, field)
-        data = Map.get(changeset.data, data_source)
-        type = Map.get(changeset.types, field)
+      Enum.reduce(changeset.types, %{}, fn {field, type}, accumulator ->
+        case is_custom_type?(type) do
+          true ->
+            data_source = Keyword.get(@field_source_map, field, field)
+            data = Map.get(changeset.data, data_source)
 
-        {:ok, transformed_value} = Kernel.apply(type, :dump, [data])
+            {:ok, transformed_value} = Kernel.apply(type, :dump, [data])
+            Map.put(accumulator, field, transformed_value)
 
-        Map.put(accumulator, field, transformed_value)
+          false ->
+            accumulator
+        end
       end)
 
-    # apply the changes to the changeset
+    # 5) apply the transformations to the changeset
     %{changeset | changes: changes}
   end
 
   # do not transform the data if it's invalid
   defp prepare_fields(changeset), do: changeset
 
-  # custom types export the dump/1 function, as per the Ecto.Type behaviour.
-  defp is_custom_type?(changeset, field) do
-    type = Map.get(changeset.types, field)
-    function_exported?(type, :dump, 1)
-  end
+  # Check whether the type is a custom type.
+  defp is_custom_type?(type), do: function_exported?(type, :dump, 1)
 
   @doc """
   Retrieve one user from the database and decrypt the encrypted data.
