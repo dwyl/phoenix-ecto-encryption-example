@@ -40,23 +40,18 @@ defmodule Encryption.User do
   # prepare_fields/1 takes changeset and applies the required "dump" function.
   # only apply the "dump" function if the changeset is valid
   defp prepare_fields(%Ecto.Changeset{valid?: true} = changeset) do
-    # get the list of fields that require transformations
-    custom_types =
+    # 1. get the list of fields
+    # 2. filter this list into custom fields only (as only these require
+    #    further transformations)
+    # 3. finally, get the data source for each field and invoke dump/1
+    #    to get the final data for this field
+
+    changes =
       changeset.types
       |> Map.keys()
       |> Enum.filter(&is_custom_type?(changeset, &1))
-
-    # create the input-output mapping in the form of [output: input, ...]
-    field_mapping =
-      Enum.map(
-        custom_types,
-        fn field -> {field, Keyword.get(@field_source_map, field, field)} end
-      )
-
-    # apply transformations to the fields with a custom type
-    changes =
-      Enum.reduce(custom_types, %{}, fn field, accumulator ->
-        data_source = Keyword.fetch!(field_mapping, field)
+      |> Enum.reduce(%{}, fn field, accumulator ->
+        data_source = Keyword.get(@field_source_map, field, field)
         data = Map.get(changeset.data, data_source)
         type = Map.get(changeset.types, field)
 
