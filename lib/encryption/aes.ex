@@ -63,6 +63,7 @@ defmodule Encryption.AES do
   # as above but *asumes* `default` (latest) encryption key is used.
   @spec decrypt(any) :: String.t
   def decrypt(ciphertext) do
+    IO.inspect ciphertext, label: "ciphertext"
     <<iv::binary-16, tag::binary-16, ciphertext::binary>> = ciphertext
     :crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})
   end
