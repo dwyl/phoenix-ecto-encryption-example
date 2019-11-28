@@ -1,8 +1,10 @@
 language: elixir
 elixir:
-  - 1.6.1
-otp_release:
-  - 20.2.4
+  - 1.9
+otp_release:	
+  - 22.1.8
+addons: # ensure that Travis-CI provisions a DB for our test:
+  postgresql: '9.5'
 env:
   - MIX_ENV=test
 script:
