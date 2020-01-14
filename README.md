@@ -1311,7 +1311,7 @@ For the _full_ user tests please see:
 [`test/user/user_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/user/user_test.exs)
 
 
-### 8. Create `PasswordField` Ecto Type for Hashing Email Address
+### 8. Create `PasswordField` Ecto Type for Hashing Password
 
 We already added the the `hash_password/1` _function_ in
 [**step 3.5**](https://github.com/dwyl/phoenix-ecto-encryption-example#35-hash-password),
