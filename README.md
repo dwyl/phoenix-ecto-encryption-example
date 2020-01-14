@@ -474,7 +474,7 @@ mix test test/lib/aes_test.exs
 
 #### 3.2 Decrypt
 
-The `decrypt` function _reverses_ the work done by `ecrypt`;
+The `decrypt` function _reverses_ the work done by `encrypt`;
 it accepts a "blob" of `ciphertext` (_which as you may recall_),
 has the IV and cypher tag prepended to it, and returns the original `plaintext`.
 
