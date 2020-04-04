@@ -31,4 +31,15 @@ defmodule Encryption.HashFieldTest do
               248, 22, 254>>
     assert {:ok, ^hash} = Field.load(hash)
   end
+
+  test ".equal? correctly determines hash equality and inequality" do
+    hash1 = <<16, 231, 67, 229, 9, 181, 13, 87, 69, 76, 227, 205, 43, 124, 16,
+              75, 46, 161, 206, 219, 141, 203, 199, 88, 112, 1, 204, 189, 109,
+              248, 22, 254>>
+    hash2 = <<10, 231, 67, 229, 9, 181, 13, 87, 69, 76, 227, 205, 43, 124, 16,
+              75, 46, 161, 206, 219, 141, 203, 199, 88, 112, 1, 204, 189, 109,
+              248, 22, 254>>
+    assert Field.equal?(hash1, hash1)
+    refute Field.equal?(hash1, hash2)
+  end
 end

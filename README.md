@@ -984,7 +984,8 @@ Examples of "pre-processing" include:
 + Encrypting / Decrypting
 + Hashing
 
-A custom type expects 4 "callback" functions to be implemented in the file:
+A custom type expects [6 callback functions](https://hexdocs.pm/ecto/Ecto.Type.html#callbacks)
+to be implemented in the file:
 + [`type/0`](https://hexdocs.pm/ecto/Ecto.Type.html#c:type/0) - define
 the Ecto Type we want Ecto to use to _store_ the data
 for our Custom Type. e.g: `:integer` or `:binary`
@@ -994,6 +995,10 @@ the given data to the desired type e.g: Integer to String.
 on the raw data before it get's "dumped" into the Ecto Native Type.
 + [`load/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:load/1) - called when
 loading data from the database and receive an Ecto native type.
++ [`embed_as/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:embed_as/1) - the return value
+(`:self` or `:dump`) determines how the type is treated inside embeds (not used here).
++ [`equal?/2`](https://hexdocs.pm/ecto/Ecto.Type.html#c:equal?/2) - invoked to determine
+if changing a type's field value changes the corresponding database record.
 
 Create a file called `lib/encryption/encrypted_field.ex` and add the following:
 
@@ -1024,6 +1029,12 @@ defmodule Encryption.EncryptedField do
   def load(value, key_id) do
     {:ok, AES.decrypt(value, key_id)}
   end
+
+  # embed_as/1 dictates how the type behaves when embedded (:self or :dump)
+  def embed_as(_), do: :self # preserve the type's higher level representation
+
+  # equal?/2 is called to determine if two field values are semantically equal
+  def equal?(value1, value2), do: value1 == value2
 end
 ```
 
@@ -1059,6 +1070,19 @@ we are using it in our `user.ex` file. (_see below_)
 > _**Note**: the_ `load/2` _function is **not required**
 for Ecto Type compliance.
 Further reading_: https://hexdocs.pm/ecto/Ecto.Type.html
+
+#### `embed_as/1`
+
+This callback is only of importance when the type is part of an [embed](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-associations-embeds-and-on-replace). It's not used here,
+but required for modules adopting the `Ecto.Type` behaviour as of Ecto 3.2.
+
+#### `equal?/2`
+
+This callback is invoked when we cast changes into a changeset and want to
+determine whether the database record needs to be updated. We use a simple
+equality comparison (`==`) to compare the current value to the requested
+update. If both values are equal, there's no need to update the record.
+
 
 _Your_ `encrypted_field.ex` Custom Ecto Type should look like this:
 [`lib/encryption/encrypted_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/encrypted_field.ex)
@@ -1168,7 +1192,7 @@ We already added the the `hash/1` _function_ to (SHA256) hash the email address 
 now we are going to _use_ it in an Ecto Type.
 
 As we did for the `EncryptedField` Ecto Type in section 4 (_above_),
-the `HashField` needs the same four "ecto callbacks":
+the `HashField` needs the same six "ecto callbacks":
 
 + `type/0` - `:binary` is appropriate for hashed data
 + `cast/1` - Cast any data type `to_string` before hashing it.
@@ -1176,6 +1200,9 @@ the `HashField` needs the same four "ecto callbacks":
 + `dump/1` Calls the `hash/1` function we defined in section 3.4 (_above_).
 + `load/1` returns the `{:ok, value}` tuple (_unmodified_)
 because a _hash_ cannot be "_undone_".
++ `embed_as/1` returns `:self` to preserve the type's higher level
+representation.
++ `equal?/2` Performs a simple equality check by value.
 
 The _code_ is pretty straightforward.
 Update the `lib/encryption/hash_field.ex` file to:
@@ -1197,6 +1224,10 @@ defmodule Encryption.HashField do
   def load(value) do
     {:ok, value}
   end
+
+  def embed_as(_), do: :self
+
+  def equal?(value1, value2), do: value1 == value2
 
   def hash(value) do
     :crypto.hash(:sha256, value <> get_salt(value))
@@ -1318,7 +1349,7 @@ We already added the the `hash_password/1` _function_ in
 now we are going to _use_ it in an Ecto Type.
 
 As for the `EncryptedField` and `HashField` Ecto Type in section 4 (_above_),
-the `PasswordField` needs the same four "ecto callbacks":
+the `PasswordField` needs the same six "ecto callbacks":
 
 + `type/0` - `:binary` is appropriate for hashed data
 + `cast/1` - Cast any data type `to_string` before hashing it.
@@ -1327,6 +1358,9 @@ the `PasswordField` needs the same four "ecto callbacks":
 we defined in section 3.5 (_above_).
 + `load/1` returns the `{:ok, value}` tuple (_unmodified_)
 because a _hash_ cannot be "_undone_".
++ `embed_as/1` returns `:self` to preserve the type's higher level
+representation.
++ `equal?/2` Performs a simple equality check by value.
 
 The _code_ is pretty straightforward.
 Update the `lib/encryption/password_field.ex` file to:
@@ -1348,6 +1382,10 @@ defmodule Encryption.PasswordField do
   def load(value) do
     {:ok, value}
   end
+
+  def embed_as(_), do: :self
+
+  def equal?(value1, value2), do: value1 == value2
 
   def hash_password(value) do
     Argon2.Base.hash_password(to_string(value),
