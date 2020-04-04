@@ -5,6 +5,10 @@ otp_release:
   - 22.1.8
 addons: # ensure that Travis-CI provisions a DB for our test:
   postgresql: '9.5'
+cache:
+  directories:
+  - _build
+  - deps
 env:
   global:
   - MIX_ENV=test
