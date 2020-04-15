@@ -15,6 +15,10 @@ defmodule Encryption.HashField do
     {:ok, value}
   end
 
+  def embed_as(_), do: :self
+
+  def equal?(value1, value2), do: value1 == value2
+
   def hash(value) do
     :crypto.hash(:sha256, value <> get_salt(value))
   end

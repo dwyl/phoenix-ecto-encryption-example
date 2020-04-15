@@ -24,4 +24,10 @@ defmodule Encryption.EncryptedField do
   def load(value, key_id) do
     {:ok, AES.decrypt(value, key_id)}
   end
+
+  # embed_as/1 dictates how the type behaves when embedded (:self or :dump)
+  def embed_as(_), do: :self # preserve the type's higher level representation
+
+  # equal?/2 is called to determine if two field values are semantically equal
+  def equal?(value1, value2), do: value1 == value2
 end
