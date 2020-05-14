@@ -4,10 +4,10 @@ defmodule Encryption.UserTest do
 
   @valid_attrs %{
     name: "Max",
-    email: "max@example.com", # Encryption.AES.encrypt(
-    key_id: 1,
-    password: "NoCarbsBeforeMarbs" # Encryption.HashField.hash("NoCarbsBeforeMarbs")
+    email: "max@example.com",
+    password: "NoCarbsBeforeMarbs"
   }
+
   @invalid_attrs %{}
 
   test "changeset with valid attributes" do
@@ -20,50 +20,83 @@ defmodule Encryption.UserTest do
     refute changeset.valid?
   end
 
-  test "can decrypt values of encrypted fields when loaded from database" do
-    Repo.insert! User.changeset(%User{}, @valid_attrs)
-    user = User.one()
-    assert user.name  == @valid_attrs.name
-    assert user.email == @valid_attrs.email
-  end
+  describe "Verify correct working of encryption and hashing" do
+    setup do
+      user = Repo.insert!(User.changeset(%User{}, @valid_attrs))
+      {:ok, user: user, email: @valid_attrs.email}
+    end
 
-  test "inserting a user sets the :email_hash field" do
-    user = Repo.insert! User.changeset(%User{}, @valid_attrs)
-    assert user.email_hash == Encryption.HashField.hash(@valid_attrs.email)
-  end
+    test "inserting a user sets the :email_hash field", %{user: user} do
+      assert user.email_hash == user.email
+    end
 
-  test "changeset validates uniqueness of email through email_hash" do
-    Repo.insert! User.changeset(%User{}, @valid_attrs) # first insert works.
-    # Now attempt to insert the *same* user again:
-    {:error, changeset} = Repo.insert User.changeset(%User{}, @valid_attrs)
-    {:ok, message} = Keyword.fetch(changeset.errors, :email_hash)
-    msg = List.first(Tuple.to_list(message))
-    assert "has already been taken" == msg
-  end
+    test "changeset validates uniqueness of email through email_hash" do
+      # Now attempt to insert the *same* user again:
+      {:error, changeset} = Repo.insert(User.changeset(%User{}, @valid_attrs))
 
-  test "cannot query on email field due to encryption not producing same value twice" do
-    Repo.insert! User.changeset(%User{}, @valid_attrs)
-    assert Repo.get_by(User, email: @valid_attrs.email) == nil
-  end
+      assert changeset.errors == [
+               email_hash:
+                 {"has already been taken",
+                  [constraint: :unique, constraint_name: "users_email_hash_index"]}
+             ]
+    end
 
-  test "User.get_by_email finds the user by their email address" do
-    Repo.insert! User.changeset(%User{}, @valid_attrs)
-    {:ok, user} = User.get_by_email(@valid_attrs.email)
-    assert user.name == @valid_attrs.name
-  end
+    test "can decrypt values of encrypted fields when loaded from database", %{user: user} do
+      found_user = Repo.one(User)
+      assert found_user.name == user.name
+      assert found_user.email == user.email
+    end
 
-  test "User.get_by_email user NOT found" do
-    Repo.insert! User.changeset(%User{}, @valid_attrs)
-    {:error, error_msg} = User.get_by_email("unregistered@mail.net")
-    assert error_msg ==  "user not found"
-  end
+    test "User.get_by_email finds the user by their email address", %{user: user} do
+      found_user = User.get_by_email(user.email)
+      assert found_user.email == user.email
+      assert found_user.email_hash == Encryption.HashField.hash(user.email)
+    end
 
-  test "can query on email_hash field because sha256 is deterministic" do
-    Repo.insert! User.changeset(%User{}, @valid_attrs)
+    test "User.get_by_email user NOT found" do
+      assert User.get_by_email("unregistered@mail.net") == nil
+    end
 
-    assert %User{} = Repo.get_by(User,
-      email_hash: Encryption.HashField.hash(@valid_attrs.email))
-    assert %User{} = Repo.one(from u in User,
-      where: u.email_hash == ^Encryption.HashField.hash(@valid_attrs.email))
+    test "cannot query on email field due to encryption not producing same value twice", %{
+      user: user
+    } do
+      assert Repo.get_by(User, email: user.email) == nil
+    end
+
+    test "can query on email_hash field because sha256 is deterministic", %{user: user} do
+      assert %User{} =
+               Repo.get_by(User,
+                 email_hash: user.email
+               )
+
+      assert %User{} =
+               Repo.one(
+                 from(u in User,
+                   where: u.email_hash == ^user.email
+                 )
+               )
+    end
+
+    test "Key rotation: add a new encryption key", %{email: email} do
+      original_keys = Application.get_env(:encryption, Encryption.AES)[:keys]
+
+      # add a new key
+      Application.put_env(:encryption, Encryption.AES,
+        keys: original_keys ++ [:crypto.strong_rand_bytes(32)]
+      )
+
+      # find user encrypted with previous key
+      user = User.get_by_email(email)
+      assert email == user.email
+
+      Repo.insert!(User.changeset(%User{}, %{name: "Frank", email: "frank@example.com"}))
+
+      user = User.get_by_email("frank@example.com")
+      assert "frank@example.com" == user.email
+      assert "Frank" == user.name
+
+      # rollback to the original keys
+      Application.put_env(:encryption, Encryption.AES, keys: original_keys)
+    end
   end
 end

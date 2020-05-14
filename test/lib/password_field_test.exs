@@ -1,9 +1,10 @@
 defmodule Encryption.PasswordFieldTest do
   use ExUnit.Case
-  alias Encryption.PasswordField, as: Field # our Ecto Custom Type
+  # our Ecto Custom Type
+  alias Encryption.PasswordField, as: Field
 
   test ".type is :binary" do
-    assert Field.type == :binary
+    assert Field.type() == :binary
   end
 
   test ".cast converts a value to a string" do
