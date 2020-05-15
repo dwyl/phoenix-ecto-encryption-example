@@ -802,7 +802,7 @@ config :encryption, EncryptionWeb.Endpoint,
 By adding the previous code block we will now have a `secret_key_base` which
 we will be able to use for testing.
 
-### 5. _Create_ `HashField` Custom Ecto Type
+### 5. _Create_ and use `HashField` Custom Ecto Type
 
 When we first created the Ecto Schema for our "user", in
 [Step 2](https://github.com/dwyl/phoenix-ecto-encryption-example#2-create-the-user-schema-database-table)
@@ -949,7 +949,6 @@ of the `lib/encryption/user.ex` file. e.g:
 alias Encryption.HashField
 ```
 
-
 _Next_, in the `lib/encryption/user.ex` file,
 ***update*** the lines for `email_hash` in the users schema<br />
 ***from***:
@@ -1017,7 +1016,7 @@ For the _full_ user tests please see:
 [`test/user/user_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/user/user_test.exs)
 
 
-#### 6 Hash _Password_ Custom Ecto type
+#### 6 Create and user Hash _Password_ Custom Ecto type
 
 When hashing **passwords**, we want to use the **_strongest_ hashing algorithm**
 and we also want the hashed value (_or "digest"_) to be ***different***
@@ -1221,7 +1220,7 @@ end
 
 
 
-### 7. _Create_ `EncryptedField` Custom Ecto Type
+### 7. _Create_ and use `EncryptedField` Custom Ecto Type
 
 
 Create a file called `lib/encryption/encrypted_field.ex` and add the following:
@@ -1303,9 +1302,6 @@ if you get "stuck", take a look at:
 [`test/lib/encrypted_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/encrypted_field_test.exs)
 
 
-
-### 9. _Use_ `EncryptedField` Ecto Type in User Schema
-
 Now that we have defined a Custom Ecto Type `EncryptedField`,
 we can _use_ the Type in our User Schema.
 Add the following line to "alias" the Type and a User
@@ -1342,7 +1338,7 @@ end
 
 
 
-#### 9.1 Ensure All Tests Pass
+#### 8 Ensure All Tests Pass
 
 Typically we will create `git commit` (_if we don't already have one_)
 for the "known state" where the tests were passing
