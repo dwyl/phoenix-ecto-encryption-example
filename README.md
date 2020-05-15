@@ -624,7 +624,6 @@ We also define a test in order to verify the working of key rotation. We add a n
 > The full `encrypt` & `decrypt` function definitions with `@doc` comments
 are in:
 [`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
-<br />
 > And tests are in:
 [`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
@@ -1191,6 +1190,37 @@ end
 ```
 
 
+```elixir
+alias Encryption.{HashField, PasswordField, User}
+```
+
+Update the lines for `:email` and `:name` in the schema <br />
+***from***:
+```elixir
+schema "users" do
+  field :email, :binary
+  field :email_hash, HashField
+  field :name, :binary
+  field :password_hash, :binary
+
+  timestamps()
+end
+```
+
+**To**:
+```elixir
+schema "users" do
+  field :email, :binary
+  field :email_hash, HashField
+  field :name, :binary
+  field :password_hash, PasswordField
+
+  timestamps()
+end
+```
+
+
+
 ### 7. _Create_ `EncryptedField` Custom Ecto Type
 
 
@@ -1292,7 +1322,7 @@ schema "users" do
   field :email, :binary
   field :email_hash, HashField
   field :name, :binary
-  field :password_hash, :binary
+  field :password_hash, PasswordField
 
   timestamps()
 end
@@ -1304,7 +1334,7 @@ schema "users" do
   field :email, EncryptedField
   field :email_hash, HashField
   field :name, EncryptedField
-  field :password_hash, :binary
+  field :password_hash, PasswordField
 
   timestamps()
 end
@@ -1312,64 +1342,7 @@ end
 
 
 
-### 10. Create `PasswordField` Ecto Type for Hashing Password
-
-We already added the the `hash_password/1` _function_ in
-[**step 3.5**](https://github.com/dwyl/phoenix-ecto-encryption-example#35-hash-password),
-now we are going to _use_ it in an Ecto Type.
-
-As for the `EncryptedField` and `HashField` Ecto Type in section 4 (_above_),
-the `PasswordField` needs the same six "ecto callbacks":
-
-+ `type/0` - `:binary` is appropriate for hashed data
-+ `cast/1` - Cast any data type `to_string` before hashing it.
-(_the hashed data will be stored as_ `:binary` _type_)
-+ `dump/1` Calls the `hash_password/1` function
-we defined in section 3.5 (_above_).
-+ `load/1` returns the `{:ok, value}` tuple (_unmodified_)
-because a _hash_ cannot be "_undone_".
-+ `embed_as/1` returns `:self` to preserve the type's higher level
-representation.
-+ `equal?/2` Performs a simple equality check by value.
-
-The _code_ is pretty straightforward.
-Update the `lib/encryption/password_field.ex` file to:
-
-```elixir
-defmodule Encryption.PasswordField do
-  @behaviour Ecto.Type
-
-  def type, do: :binary
-
-  def cast(value) do
-    {:ok, to_string(value)}
-  end
-
-  def dump(value) do
-    {:ok, hash_password(value)}
-  end
-
-  def load(value) do
-    {:ok, value}
-  end
-
-  def embed_as(_), do: :self
-
-  def equal?(value1, value2), do: value1 == value2
-
-  def hash_password(value) do
-    Argon2.Base.hash_password(to_string(value),
-      Argon2.gen_salt(), [{:argon2_type, 2}])
-  end
-
-  def verify_password(password, stored_hash) do
-    Argon2.verify_pass(password, stored_hash)
-  end
-end
-```
-
-
-#### 10.1 Ensure All Tests Pass
+#### 9.1 Ensure All Tests Pass
 
 Typically we will create `git commit` (_if we don't already have one_)
 for the "known state" where the tests were passing
