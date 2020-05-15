@@ -312,7 +312,7 @@ Running the `mix ecto.migrate` command will create the
 `users` table in your `encryption_dev` database. <br />
 You can _view_ this (_empty_) table in a PostgreSQL GUI. Here is a screenshot
 from **pgAdmin**: <br />
-![elixir-encryption-pgadmin-user-table](https://user-images.githubusercontent.com/194400/37981997-1ab4362a-31e7-11e8-9bd8-9566834fc199.png)
+![elixir-encryption-pgadmin-user-table](https://user-images.githubusercontent.com/1466/82065993-1b619c80-96cf-11ea-898e-8cfd0160346e.png)
 
 
 ### 3. Define The 6 Functions
