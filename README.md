@@ -229,17 +229,14 @@ we are going to store 3 (_primary_) pieces of data.
 + `password_hash`: the hashed password (_so the person can login_)
 
 In _addition_ to the 3 "_primary_" fields,
-we need _**two** more fields_ to store "metadata":
+we need _**one** more field_ to store "metadata":
 + `email_hash`: so we can check ("lookup")
 if an email address is in the database
 _without_ having to _decrypt_ the email(s) stored in the DB.
-+ `key_id`: the id of the **encryption key** used to encrypt the data
-stored in the row. As this is an `id`
-we use an `:integer` to store it in the DB.<sup>1</sup>
 
 Create the `user` schema using the following generator command:
 ```sh
-mix phx.gen.schema User users email:binary email_hash:binary name:binary password_hash:binary key_id:integer
+mix phx.gen.schema User users email:binary email_hash:binary name:binary password_hash:binary
 ```
 
 ![phx.gen.schema](https://user-images.githubusercontent.com/194400/35360796-dc4507cc-0156-11e8-9cf1-7f4005e5ed34.png)
@@ -275,7 +272,6 @@ defmodule Encryption.Repo.Migrations.CreateUsers do
       add(:email_hash, :binary)
       add(:name, :binary)
       add(:password_hash, :binary)
-      add(:key_id, :integer)
 
       timestamps()
     end
@@ -295,7 +291,6 @@ defmodule Encryption.Repo.Migrations.CreateUsers do
       add(:email_hash, :binary)
       add(:name, :binary)
       add(:password_hash, :binary)
-      add(:key_id, :integer)
 
       timestamps()
     end
@@ -317,17 +312,7 @@ Running the `mix ecto.migrate` command will create the
 `users` table in your `encryption_dev` database. <br />
 You can _view_ this (_empty_) table in a PostgreSQL GUI. Here is a screenshot
 from **pgAdmin**: <br />
-![elixir-encryption-pgadmin-user-table](https://user-images.githubusercontent.com/194400/37981997-1ab4362a-31e7-11e8-9bd8-9566834fc199.png)
-
-
-<sup>1</sup> `key_id`:
-_The_ `key_id` _column in our_ `users` _database table,
-indicates which **encryption key** was used to encrypt the data.
-For this example/demo we are using **two** encryption keys
-to **demonstrate key rotation**. Key rotation is a "**best practice**"
-that **limits** the amount of data an "attacker" can decrypt
-if the database were ever "compromised"
-(provided we keep the encryption keys safe that is!)_
+![elixir-encryption-pgadmin-user-table](https://user-images.githubusercontent.com/1466/82065993-1b619c80-96cf-11ea-898e-8cfd0160346e.png)
 
 
 ### 3. Define The 6 Functions
@@ -425,14 +410,6 @@ Using `:aes_gcm` ("_Advanced Encryption Standard Galois Counter Mode_"):
 this is what we store in the database.
 Including the IV and ciphertag is _essential_ for allowing decryption,
 without these two pieces of data, we would not be able to "reverse" the process.
-
-> _**Note**: in addition to this_ `encrypt/1` _function,
-we have defined an_ `encrypt/2` _"sister" function which accepts
-a **specific** (encryption)_ `key_id` _so that we can use the desired
-encryption key for encrypting a block of text.
-For the purposes of this example/tutorial,
-it's **not strictly necessary**,
-but it is included for "completeness"_.
 
 
 ##### Test the `encrypt/1` Function
@@ -538,42 +515,120 @@ are in:
 > And tests are in:
 [`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
-#### 3.3 Get (Encryption) Key
+#### 3.3 Key rotation
 
-You will have noticed that _both_ `encrypt` and `decrypt` functions
-call a `get_key/0` function. <br />
-We wrote a "dummy" function in Step 3.1,
-we need to define the "real" function now!
+Key rotation is a "**best practice**"
+that **limits** the amount of data an "attacker" can decrypt if the database were ever "compromised"
+_(provided we keep the encryption keys safe that is!)_ A really good guide to this is: https://cloud.google.com/kms/docs/key-rotation.
+
+For this reason we want to 'store' a `key_id`. The `key_id` indicates which **encryption key** was used to encrypt the data. Besides the IV and ciphertag, the key_id is also _essential_ for allowing decryption, so we change the encrypt/1 function to preserve the key_id as well
+
 
 ```elixir
-defp get_key do
-  keys = Application.get_env(:encryption, Encryption.AES)[:keys]
-  count = Enum.count(keys) - 1 # get the last/latest key from the key list
-  get_key(count) # use get_key/1 to retrieve the desired encryption key.
-end
+defmodule Encryption.AES do
+  @aad "AES256GCM" # Use AES 256 Bit Keys for Encryption.
 
-defp get_key(key_id) do
-  keys = Application.get_env(:encryption, Encryption.AES)[:keys] # cached call
-  Enum.at(keys, key_id) # retrieve the desired key by key_id from keys list.
+  def encrypt(plaintext) do
+    iv = :crypto.strong_rand_bytes(16)
+    # get latest key
+    key = get_key()
+    # get latest ID;
+    key_id = get_key_id()
+    # {ciphertext, tag} = :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, plaintext, 16})
+    {ciphertext, tag} = :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
+    iv <> tag <> <<key_id::unsigned-big-integer-32>> <> ciphertext
+  end
+
+  defp get_key do
+    get_key_id() |> get_key
+  end
+
+  defp get_key(key_id) do
+    encryption_keys() |> Enum.at(key_id)
+  end
+
+  defp get_key_id do
+    Enum.count(encryption_keys()) - 1
+  end
+
+  defp encryption_keys do
+    Application.get_env(:encryption, Encryption.AES)[:keys]
+  end
 end
 ```
 
-We define the `get_key` _twice_ in `lib/encryption/aes.ex`
+> _For the **complete** file containing these functions see_:
+[`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
+
+
+For this example/demo we are using **two** encryption keys which are kept as an application environment variable. The values of the encryptions keys are associated with the key Encryption.AES. During the encryption we are by default always using the latest (most recent) encryption key (get_key/0) and the corresponding key_id is fetched by get_key_id/0 which becomes part of the ciphertext.
+
+With decrypting we now pattern match the associated key_id from the ciphertext in order to be able to decrypt with the correct encryption key.
+
+```elixir
+  def decrypt(ciphertext) do
+    <<iv::binary-16, tag::binary-16, key_id::unsigned-big-integer-32, ciphertext::binary>> =
+      ciphertext
+
+    :crypto.block_decrypt(:aes_gcm, get_key(key_id), iv, {@aad, ciphertext, tag})
+  end
+```
+
+So we defined the `get_key` _twice_ in `lib/encryption/aes.ex`
 as per Erlang/Elixir standard,
 once for each ["arity"](https://en.wikipedia.org/wiki/Arity)
 or number of "arguments".
 In the first case `get_key/0` _assumes_ you want the _latest_ Encryption Key.
 The second case `get_key/1` lets you supply the `key_id` to be "looked up":
 
-Both versions of `get_key` call the `Application.get_env` function:
+
+Both versions of `get_key` use encryption_keys/0 function to call the `Application.get_env` function:
 `Application.get_env(:encryption, Encryption.AES)[:keys]` _specifically_.
 For this to work we need to define the keys as an Environment Variable
-and make it available to our App in `config.exs`.
+and make it available to our App in `config.exs`, see section 3.4.
 
-> _For the **complete** file containing these functions see_:
+
+##### Test the `get_key/0` and `get_key/1` Functions?
+
+Given that `get_key/0` and `get_key/1` are _both_ `defp` (_i.e. "private"_)
+they are not "exported" with the AES module and therefore cannot be _invoked_
+outside of the AES module.
+
+The `get_key/0` and `get_key/1` are _invoked_ by `encrypt/1` and `decrypt/1`
+and thus provided these (public) latter functions
+are tested adequately, the "private" functions will be too.
+
+Re-run the tests `mix test test/lib/aes_test.exs` and confirm they _still_ pass.
+
+We also define a test in order to verify the working of key rotation. We add a new encryption key and assert (and make sure) that an encrypted value with an older encryption key will still be decrypted correctly.
+
+```elixir
+  test "can still decrypt the value after adding a new encryption key" do
+    encrypted_value = "hello" |> AES.encrypt()
+
+    original_keys = Application.get_env(:encryption, Encryption.AES)[:keys]
+
+    # add a new key
+    Application.put_env(:encryption, Encryption.AES,
+      keys: original_keys ++ [:crypto.strong_rand_bytes(32)]
+    )
+
+    assert "hello" == encrypted_value |> AES.decrypt()
+
+    # rollback to the original keys
+    Application.put_env(:encryption, Encryption.AES, keys: original_keys)
+  end
+
+```
+
+> The full `encrypt` & `decrypt` function definitions with `@doc` comments
+are in:
 [`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
+> And tests are in:
+[`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
-##### `ENCRYPTION_KEYS` Environment Variable
+
+#### 3.4  `ENCRYPTION_KEYS` Environment Variable
 
 In order for our `get_key/0` and `get_key/1` functions to _work_,
 it needs to be able to "read" the encryption keys.
@@ -630,27 +685,9 @@ config :encryption, Encryption.AES,
     |> Enum.map(fn key -> :base64.decode(key) end) # decode the key.
 ```
 
-##### Test the `get_key/0` and `get_key/1` Functions?
-
-Given that `get_key/0` and `get_key/1` are _both_ `defp` (_i.e. "private"_)
-they are not "exported" with the AES module and therefore cannot be _invoked_
-outside of the AES module.
-
-The `get_key/0` and `get_key/1` are _invoked_ by `encrypt/2` and `decrypt/2`
-and thus provided these (public) latter functions
-are tested adequately, the "private" functions will be too.
-
-Re-run the tests `mix test test/lib/aes_test.exs` and confirm they _still_ pass.
-
-> The full `encrypt` & `decrypt` function definitions with `@doc` comments
-are in:
-[`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
-<br />
-> And tests are in:
-[`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
 
-#### 3.4 Hash _Email Address_
+### 4 Hash _Email Address_
 
 
 The idea behind _hashing_ email addresses is to
@@ -765,11 +802,75 @@ config :encryption, EncryptionWeb.Endpoint,
 By adding the previous code block we will now have a `secret_key_base` which
 we will be able to use for testing.
 
-Next, create a file called `lib/encryption/hash_field.ex`
-and include the following code:
+### 5. _Create_ and use `HashField` Custom Ecto Type
+
+When we first created the Ecto Schema for our "user", in
+[Step 2](https://github.com/dwyl/phoenix-ecto-encryption-example#2-create-the-user-schema-database-table)
+(_above_)
+This created the
+[`lib/encryption/user.ex`](https://raw.githubusercontent.com/dwyl/phoenix-ecto-encryption-example/36da851f30670967dd3493f055fb9f7b2649c188/lib/encryption/user.ex)
+file with the following schema:
+
+```elixir
+schema "users" do
+  field :email, :binary
+  field :email_hash, :binary
+  field :name, :binary
+  field :password_hash, :binary
+
+  timestamps()
+end
+```
+
+The _default_ Ecto field types (`:binary`) are a good start.
+But we can do _so much_ better if we define _custom_ Ecto Types!
+
+Ecto Custom Types are a way of automatically "_pre-processing_" data
+before inserting it into (_and reading from_) a database.
+Examples of "pre-processing" include:
++ Custom Validation e.g: phone number or address format.
++ Encrypting / Decrypting
++ Hashing
+
+A custom type expects [6 callback functions](https://hexdocs.pm/ecto/Ecto.Type.html#callbacks)
+to be implemented in the file:
++ [`type/0`](https://hexdocs.pm/ecto/Ecto.Type.html#c:type/0) - define
+the Ecto Type we want Ecto to use to _store_ the data
+for our Custom Type. e.g: `:integer` or `:binary`
++ [`cast/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:cast/1) - "typecasts" (_converts_)
+the given data to the desired type e.g: Integer to String.
++ [`dump/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:dump/1) - performs the "processing"
+on the raw data before it get's "dumped" into the Ecto Native Type.
++ [`load/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:load/1) - called when
+loading data from the database and receive an Ecto native type.
++ [`embed_as/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:embed_as/1) - the return value
+(`:self` or `:dump`) determines how the type is treated inside embeds (not used here).
++ [`equal?/2`](https://hexdocs.pm/ecto/Ecto.Type.html#c:equal?/2) - invoked to determine
+if changing a type's field value changes the corresponding database record.
+
+Create a file called `lib/encryption/hash_field.ex` and add the following:
 
 ```elixir
 defmodule Encryption.HashField do
+  @behaviour Ecto.Type
+
+  def type, do: :binary
+
+  def cast(value) do
+    {:ok, to_string(value)}
+  end
+
+  def dump(value) do
+    {:ok, hash(value)}
+  end
+
+  def load(value) do
+    {:ok, value}
+  end
+
+  def embed_as(_), do: :self
+
+  def equal?(value1, value2), do: value1 == value2
 
   def hash(value) do
     :crypto.hash(:sha256, value <> get_salt(value))
@@ -783,7 +884,22 @@ defmodule Encryption.HashField do
     :crypto.hash(:sha256, value <> secret_key_base)
   end
 end
+
 ```
+
+Let's step through each of these
+
+#### `type/0`
+
+The best data type for storing encrypted data is `:binary`
+(_it uses **half** the "space" of a `:string` for the **same** ciphertext_).
+
+#### `cast/1`
+
+Cast any data type `to_string` before encrypting it.
+(_the encrypted data "ciphertext" will be of_ `:binary` _type_)
+
+#### `dump/1`
 
 The `hash/1` function use Erlang's `crypto` library
 [`hash/2`](http://erlang.org/doc/man/crypto.html#hash-2) function.
@@ -801,6 +917,23 @@ in case the DB is ever "compromised"
 the "attacker" still has to "compute"
 a ["rainbow table"](https://en.wikipedia.org/wiki/Rainbow_table) from _scratch_.
 
+#### `load/1`
+
+Return the hash value as it is _read_ from the database.
+
+#### `embed_as/1`
+
+This callback is only of importance when the type is part of an [embed](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-associations-embeds-and-on-replace). It's not used here,
+but required for modules adopting the `Ecto.Type` behaviour as of Ecto 3.2.
+
+#### `equal?/2`
+
+This callback is invoked when we cast changes into a changeset and want to
+determine whether the database record needs to be updated. We use a simple
+equality comparison (`==`) to compare the current value to the requested
+update. If both values are equal, there's no need to update the record.
+
+
 > _**Note**: Don't forget to export your_ `SECRET_KEY_BASE`
 _environment variable_ (_see instructions above_)
 
@@ -810,8 +943,80 @@ _environment variable_ (_see instructions above_)
 [`test/lib/hash_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/hash_field_test.exs)
 
 
+_First_ add the `alias` for `HashField` near the top
+of the `lib/encryption/user.ex` file. e.g:
+```elixir
+alias Encryption.HashField
+```
 
-#### 3.5 Hash _Password_
+_Next_, in the `lib/encryption/user.ex` file,
+***update*** the lines for `email_hash` in the users schema<br />
+***from***:
+```elixir
+schema "users" do
+  field :email, :binary
+  field :email_hash, :binary
+  field :name, :binary
+  field :password_hash, :binary
+  timestamps()
+end
+```
+
+**To**:
+```elixir
+schema "users" do
+  field :email, :binary
+  field :email_hash, HashField
+  field :name, :binary
+  field :password_hash, :binary
+
+  timestamps()
+end
+```
+
+```Elixir
+  def changeset(%User{} = user, attrs \\ %{}) do
+    user
+    |> cast(attrs, [:name, :email])
+    |> validate_required([:email])
+    |> add_email_hash
+    |> unique_constraint(:email_hash)
+  end
+
+  defp add_email_hash(changeset) do
+    if Map.has_key?(changeset.changes, :email) do
+      changeset |> put_change(:email_hash, changeset.changes.email)
+    else
+      changeset
+    end
+  end
+```
+We should _test_ this new functionality. Create the file
+`test/lib/user_test.exs` and add the following:
+
+```elixir
+  describe "Verify correct working of hashing" do
+    setup do
+      user = Repo.insert!(User.changeset(%User{}, @valid_attrs))
+      {:ok, user: user, email: @valid_attrs.email}
+    end
+
+    test "inserting a user sets the :email_hash field", %{user: user} do
+      assert user.email_hash == user.email
+    end
+
+    test ":email_hash field is the encrypted hash of the email", %{user: user} do
+      user_from_db = User |> Repo.one()
+      assert user_from_db.email_hash == Encryption.HashField.hash(user.email)
+    end
+  end
+```
+
+For the _full_ user tests please see:
+[`test/user/user_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/user/user_test.exs)
+
+
+#### 6 Create and user Hash _Password_ Custom Ecto type
 
 When hashing **passwords**, we want to use the **_strongest_ hashing algorithm**
 and we also want the hashed value (_or "digest"_) to be ***different***
@@ -866,7 +1071,7 @@ as we saw before in the `encrypt` function; again,
   + https://github.com/riverrun/argon2_elixir/issues/17
   + https://crypto.stackexchange.com/questions/48935/why-use-argon2i-or-argon2d-if-argon2id-exists
 
-##### 3.5.1 Test the `hash_password/1` Function?
+##### 6.1 Test the `hash_password/1` Function?
 
 In order to _test_ the `PasswordField.hash_password/1` function
 we use the `Argon2.verify_pass` function to _verify_ a password hash.
@@ -899,7 +1104,7 @@ The test should _pass_;
 if _not_, please re-trace the steps.
 
 
-#### 3.6 _Verify_ Password
+#### 6.2 _Verify_ Password
 
 The _corresponding_ function to _check_ (_or "verify"_)
 the password is `verify_password/2`.
@@ -947,425 +1152,9 @@ If you get stuck, see:
 [`test/lib/password_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/password_field_test.exs)
 
 
+Define the other Ecto.Type behaviour functions:
 
-
-### 4. _Create_ `EncryptedField` Custom Ecto Type
-
-Writing a few functions to `encrypt`, `decrypt` and `hash` data
-is a good _start_, <br />
-however the real "_magic_" comes from defining
-these functions as Custom Ecto Types.
-
-When we first created the Ecto Schema for our "user", in
-[Step 2](https://github.com/dwyl/phoenix-ecto-encryption-example#2-create-the-user-schema-database-table)
-(_above_)
-This created the
-[`lib/encryption/user.ex`](https://raw.githubusercontent.com/dwyl/phoenix-ecto-encryption-example/36da851f30670967dd3493f055fb9f7b2649c188/lib/encryption/user.ex)
-file with the following schema:
-
-```elixir
-schema "users" do
-  field :email, :binary
-  field :email_hash, :binary
-  field :key_id, :integer
-  field :name, :binary
-  field :password_hash, :binary
-
-  timestamps()
-end
-```
-The _default_ Ecto field types (`:binary`) are a good start.
-But we can do _so much_ better if we define _custom_ Ecto Types!
-
-Ecto Custom Types are a way of automatically "_pre-processing_" data
-before inserting it into (_and reading from_) a database.
-Examples of "pre-processing" include:
-+ Custom Validation e.g: phone number or address format.
-+ Encrypting / Decrypting
-+ Hashing
-
-A custom type expects [6 callback functions](https://hexdocs.pm/ecto/Ecto.Type.html#callbacks)
-to be implemented in the file:
-+ [`type/0`](https://hexdocs.pm/ecto/Ecto.Type.html#c:type/0) - define
-the Ecto Type we want Ecto to use to _store_ the data
-for our Custom Type. e.g: `:integer` or `:binary`
-+ [`cast/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:cast/1) - "typecasts" (_converts_)
-the given data to the desired type e.g: Integer to String.
-+ [`dump/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:dump/1) - performs the "processing"
-on the raw data before it get's "dumped" into the Ecto Native Type.
-+ [`load/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:load/1) - called when
-loading data from the database and receive an Ecto native type.
-+ [`embed_as/1`](https://hexdocs.pm/ecto/Ecto.Type.html#c:embed_as/1) - the return value
-(`:self` or `:dump`) determines how the type is treated inside embeds (not used here).
-+ [`equal?/2`](https://hexdocs.pm/ecto/Ecto.Type.html#c:equal?/2) - invoked to determine
-if changing a type's field value changes the corresponding database record.
-
-Create a file called `lib/encryption/encrypted_field.ex` and add the following:
-
-```elixir
-defmodule Encryption.EncryptedField do
-  alias Encryption.AES  # alias our AES encrypt & decrypt functions (3.1 & 3.2)
-
-  @behaviour Ecto.Type  # Check this module conforms to Ecto.type behavior.
-  def type, do: :binary # :binary is the data type ecto uses internally
-
-  # cast/1 simply calls to_string on the value and returns a "success" tuple
-  def cast(value) do
-    {:ok, to_string(value)}
-  end
-
-  # dump/1 is called when the field value is about to be written to the database
-  def dump(value) do
-    ciphertext = value |> to_string |> AES.encrypt
-    {:ok, ciphertext} # ciphertext is :binary data
-  end
-
-  # load/1 is called when the field is loaded from the database
-  def load(value) do
-    {:ok, AES.decrypt(value)} # decrypted data is :string type.
-  end
-
-  # load/2 is called with a specific key_id when the field is loaded from DB
-  def load(value, key_id) do
-    {:ok, AES.decrypt(value, key_id)}
-  end
-
-  # embed_as/1 dictates how the type behaves when embedded (:self or :dump)
-  def embed_as(_), do: :self # preserve the type's higher level representation
-
-  # equal?/2 is called to determine if two field values are semantically equal
-  def equal?(value1, value2), do: value1 == value2
-end
-```
-
-Let's step through each of these
-
-#### `type/0`
-
-The best data type for storing encrypted data is `:binary`
-(_it uses **half** the "space" of a `:string` for the **same** ciphertext_).
-
-#### `cast/1`
-
-Cast any data type `to_string` before encrypting it.
-(_the encrypted data "ciphertext" will be of_ `:binary` _type_)
-
-#### `dump/1`
-
-Calls the `AES.encrypt/1` function we defined in section 3.1 (_above_)
-so data is _encrypted_ before we insert into the database.
-
-#### `load/1`
-
-Calls the `AES.decrypt/1` function so data is _decrypted_ when it is _read_
-from the database.
-
-#### `load/2`
-
-Calls the `AES.decrypt/2` function so we can decrypt the `ciphertext`
-using a _specific_ encryption key.
-Note: Ecto does _not_ invoke this function directly,
-we are using it in our `user.ex` file. (_see below_)
-
-> _**Note**: the_ `load/2` _function is **not required**
-for Ecto Type compliance.
-Further reading_: https://hexdocs.pm/ecto/Ecto.Type.html
-
-#### `embed_as/1`
-
-This callback is only of importance when the type is part of an [embed](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-associations-embeds-and-on-replace). It's not used here,
-but required for modules adopting the `Ecto.Type` behaviour as of Ecto 3.2.
-
-#### `equal?/2`
-
-This callback is invoked when we cast changes into a changeset and want to
-determine whether the database record needs to be updated. We use a simple
-equality comparison (`==`) to compare the current value to the requested
-update. If both values are equal, there's no need to update the record.
-
-
-_Your_ `encrypted_field.ex` Custom Ecto Type should look like this:
-[`lib/encryption/encrypted_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/encrypted_field.ex)
-`try` to write the **tests** for the callback functions,
-if you get "stuck", take a look at:
-[`test/lib/encrypted_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/encrypted_field_test.exs)
-
-
-
-### 5. _Use_ `EncryptedField` Ecto Type in User Schema
-
-Now that we have defined a Custom Ecto Type `EncryptedField`,
-we can _use_ the Type in our User Schema.
-Add the following line to "alias" the Type and a User
-in the `lib/encryption/user.ex` file:
-
-```elixir
-alias Encryption.{EncryptedField, User}
-```
-
-Update the lines for `:email` and `:name` in the schema <br />
-***from***:
-```elixir
-schema "users" do
-  field :email, :binary
-  field :email_hash, :binary
-  field :key_id, :integer
-  field :name, :binary
-  field :password_hash, :binary
-
-  timestamps()
-end
-```
-
-**To**:
-```elixir
-schema "users" do
-  field :email, EncryptedField
-  field :email_hash, :binary
-  field :key_id, :integer
-  field :name, EncryptedField
-  field :password_hash, :binary
-
-  timestamps()
-end
-```
-
-We need to make _two_ further changes:
-
-_First_, we need a function to encrypt the `:email` and `:name` fields.
-In the `user.ex` file add the `encrypt_fields/1`
-
-```elixir
-defp encrypt_fields(changeset) do
-  case changeset.valid? do
-    true ->
-      {:ok, encrypted_email} = EncryptedField.dump(changeset.data.email)
-      {:ok, encrypted_name} = EncryptedField.dump(changeset.data.name)
-      changeset
-      |> put_change(:email, encrypted_email)
-      |> put_change(:name, encrypted_name)
-    _ ->
-      changeset
-  end
-end
-```
-
-_Second_, we need to _update_ the `changeset` function
-to include a line calling the `encrypt_fields/1` function: <br />
-***From***:
-```elixir
-def changeset(user, attrs) do
-  user
-  |> cast(attrs, [:name, :email, :email_hash])
-  |> validate_required([:name, :email, :email_hash])
-end
-```
-**To**:
-```elixir
-def changeset(%User{} = user, attrs \\ %{}) do
-  user
-  |> Map.merge(attrs) # merge any attributes into
-  |> cast(attrs, [:name, :email])
-  |> validate_required([:name, :email])
-  |> encrypt_fields   # encrypt the :name and :email fields prior to DB insert
-end
-```
-
-Adding `|> Map.merge(attrs)`
-to the `changeset` function will merge any additional attributes
-before further checks are performed
-and adding `|> encrypt_fields` will encrypt the `:name` and `:email` fields
-prior to the `user` being inserted into the database.
-<br />
-
-> _**Note** we have only added the code to_ `encrypt`
-_the_ `:name` _and_ `:email` _fields on the_ `changeset`.
-_We still need to_ `decrypt` _the data when it is retrieved from the database._
-_Decryption on data retrieval is covered below._
-
-
-### 6. Create `HashField` Ecto Type for Hashing Email Address
-
-We already added the the `hash/1` _function_ to (SHA256) hash the email address above in
-[**step 3.4**](https://github.com/dwyl/phoenix-ecto-encryption-example#34-hash-email-address),
-<br />
-now we are going to _use_ it in an Ecto Type.
-
-As we did for the `EncryptedField` Ecto Type in section 4 (_above_),
-the `HashField` needs the same six "ecto callbacks":
-
-+ `type/0` - `:binary` is appropriate for hashed data
-+ `cast/1` - Cast any data type `to_string` before hashing it.
-(_the hashed data will be stored as_ `:binary` _type_)
-+ `dump/1` Calls the `hash/1` function we defined in section 3.4 (_above_).
-+ `load/1` returns the `{:ok, value}` tuple (_unmodified_)
-because a _hash_ cannot be "_undone_".
-+ `embed_as/1` returns `:self` to preserve the type's higher level
-representation.
-+ `equal?/2` Performs a simple equality check by value.
-
-The _code_ is pretty straightforward.
-Update the `lib/encryption/hash_field.ex` file to:
-
-```elixir
-defmodule Encryption.HashField do
-  @behaviour Ecto.Type
-
-  def type, do: :binary
-
-  def cast(value) do
-    {:ok, to_string(value)}
-  end
-
-  def dump(value) do
-    {:ok, hash(value)}
-  end
-
-  def load(value) do
-    {:ok, value}
-  end
-
-  def embed_as(_), do: :self
-
-  def equal?(value1, value2), do: value1 == value2
-
-  def hash(value) do
-    :crypto.hash(:sha256, value <> get_salt(value))
-  end
-
-  # Get/use Phoenix secret_key_base as "salt" for one-way hashing Email address
-  # use the *value* to create a *unique* "salt" for each value that is hashed:
-  defp get_salt(value) do
-    secret_key_base =
-      Application.get_env(:encryption, EncryptionWeb.Endpoint)[:secret_key_base]
-    :crypto.hash(:sha256, value <> secret_key_base)
-  end
-end
-```
-
-
-### 7. _Use_ `HashField` Ecto Type in User Schema
-
-_First_ add the `alias` for `HashField` near the top
-of the `lib/encryption/user.ex` file. e.g:
-```elixir
-alias Encryption.{User, Repo, EncryptedField, HashField}
-```
-
-
-_Next_, in the `lib/encryption/user.ex` file,
-***update*** the lines for `email_hash` in the users schema<br />
-***from***:
-```elixir
-schema "users" do
-  field :email, EncryptedField
-  field :email_hash, :binary
-  field :key_id, :integer
-  field :name, EncryptedField
-  field :password_hash, :binary
-  timestamps()
-end
-```
-
-**To**:
-```elixir
-schema "users" do
-  field :email, EncryptedField
-  field :email_hash, HashField
-  field :key_id, :integer
-  field :name, EncryptedField
-  field :password_hash, :binary
-
-  timestamps()
-end
-```
-
-Then we need to create a function to perform the _hashing_ of `:email` field:
-```elixir
-defp set_hashed_fields(changeset) do
-  case changeset.valid? do
-    true ->
-      changeset
-      |> put_change(:email_hash, HashField.hash(changeset.data.email))
-    _ ->
-      changeset # return unmodified
-  end
-end
-```
-
-_Finally_, add the `set_hashed_fields/1` function call in `changeset/2` pipeline
-***from***:
-```elixir
-def changeset(%User{} = user, attrs \\ %{}) do
-  user
-  |> Map.merge(attrs) # merge any attributes into
-  |> cast(attrs, [:name, :email])
-  |> validate_required([:name, :email])
-  |> encrypt_fields   # encrypt the :name and :email fields prior to DB insert
-end
-```
-
-**To**:
-```elixir
-def changeset(%User{} = user, attrs \\ %{}) do
-  user
-  |> Map.merge(attrs)
-  |> cast(attrs, [:name, :email])
-  |> validate_required([:name, :email])
-  |> set_hashed_fields              # set the email_hash field
-  |> unique_constraint(:email_hash) # check email_hash is not already in DB
-  |> encrypt_fields
-end
-```
-
-We should _test_ this new functionality. Create the file
-`test/lib/user_test.exs` and add the following:
-
-```elixir
-
-  test "inserting a user sets the :email_hash field" do
-    user = Repo.insert! User.changeset(%User{}, @valid_attrs)
-    assert user.email_hash == Encryption.HashField.hash(@valid_attrs.email)
-  end
-
-  test "changeset validates uniqueness of email through email_hash" do
-    Repo.insert! User.changeset(%User{}, @valid_attrs) # first insert works.
-    # Now attempt to insert the *same* user again:
-    {:error, changeset} = Repo.insert User.changeset(%User{}, @valid_attrs)
-    {:ok, message} = Keyword.fetch(changeset.errors, :email_hash)
-    msg = List.first(Tuple.to_list(message))
-    assert "has already been taken" == msg
-  end
-```
-
-For the _full_ user tests please see:
-[`test/user/user_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/user/user_test.exs)
-
-
-### 8. Create `PasswordField` Ecto Type for Hashing Password
-
-We already added the the `hash_password/1` _function_ in
-[**step 3.5**](https://github.com/dwyl/phoenix-ecto-encryption-example#35-hash-password),
-now we are going to _use_ it in an Ecto Type.
-
-As for the `EncryptedField` and `HashField` Ecto Type in section 4 (_above_),
-the `PasswordField` needs the same six "ecto callbacks":
-
-+ `type/0` - `:binary` is appropriate for hashed data
-+ `cast/1` - Cast any data type `to_string` before hashing it.
-(_the hashed data will be stored as_ `:binary` _type_)
-+ `dump/1` Calls the `hash_password/1` function
-we defined in section 3.5 (_above_).
-+ `load/1` returns the `{:ok, value}` tuple (_unmodified_)
-because a _hash_ cannot be "_undone_".
-+ `embed_as/1` returns `:self` to preserve the type's higher level
-representation.
-+ `equal?/2` Performs a simple equality check by value.
-
-The _code_ is pretty straightforward.
-Update the `lib/encryption/password_field.ex` file to:
-
-```elixir
+```Elixir
 defmodule Encryption.PasswordField do
   @behaviour Ecto.Type
 
@@ -1396,92 +1185,160 @@ defmodule Encryption.PasswordField do
     Argon2.verify_pass(password, stored_hash)
   end
 end
+
 ```
 
 
-### 9. _Use_ `PasswordField` Ecto Type in User Schema
-
-As before, we need to _use_ the `PasswordField` in our User Schema.
-Remember to `alias` the module at the _top_
-of the `lib/encryption/user.ex` file. e.g:
 ```elixir
-alias Encryption.{User, Repo, EncryptedField, HashField, PasswordField}
+alias Encryption.{HashField, PasswordField, User}
 ```
 
-Now we simply _extend_ the `set_hashed_fields/1` function we defined
-in part 7 (_above_) to set the `:password_hash` field on the `changeset`.
-***From***:
+Update the lines for `:email` and `:name` in the schema <br />
+***from***:
 ```elixir
-defp set_hashed_fields(changeset) do
-  case changeset.valid? do
-    true ->
-      changeset
-      |> put_change(:email_hash, HashField.hash(changeset.data.email))
-    _ ->
-      changeset # return unmodified
-  end
+schema "users" do
+  field :email, :binary
+  field :email_hash, HashField
+  field :name, :binary
+  field :password_hash, :binary
+
+  timestamps()
 end
 ```
 
 **To**:
 ```elixir
-defp set_hashed_fields(changeset) do
-  case changeset.valid? do
-    true ->
-      changeset
-      |> put_change(:email_hash, HashField.hash(changeset.data.email))
-      |> put_change(:password_hash,
-        PasswordField.hash_password(changeset.data.password))
-    _ ->
-      changeset # return unmodified
-  end
+schema "users" do
+  field :email, :binary
+  field :email_hash, HashField
+  field :name, :binary
+  field :password_hash, PasswordField
+
+  timestamps()
 end
 ```
 
-That's it.
-
-For the _full_ `user.ex` code see:
-[`lib/encryption/user.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/tree/3659399ec32ca4f07f45d0552b9cf25c359a2456)
-and tests please see:
-[`test/user/user_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/user/user_test.exs)
 
 
- <br />
+### 7. _Create_ and use `EncryptedField` Custom Ecto Type
 
-### 10. Refactor `set_hashed_fields/1` and `encrypt_fields/1`...?
 
-One of the _best_ ways to _confirm_ that you _understood_ the code
-is to attempt to
-[***refactor***](https://en.wikipedia.org/wiki/Code_refactoring) it.
+Create a file called `lib/encryption/encrypted_field.ex` and add the following:
 
-This step is _optional_ (_you can skip it if you're not confident
-with your Elixir skills_), however it is _recommended_ you at least
-_read_ through it.
+```elixir
+defmodule Encryption.EncryptedField do
+  alias Encryption.AES  # alias our AES encrypt & decrypt functions (3.1 & 3.2)
 
-> _**Note**: in practice we don't tend to re-factor our code until
-we have shipped it, encountered a "bottleneck" (a need for optimisation)
-**or** we need to **extend** some code and want to make it "DRY" first_.
+  @behaviour Ecto.Type  # Check this module conforms to Ecto.type behavior.
+  def type, do: :binary # :binary is the data type ecto uses internally
 
-> _**Remember**: it's only "refactoring" if there are **complete tests**
-otherwise it's_ ["***roulette***"](https://en.wikipedia.org/wiki/Roulette)!
-(_changing code when you don't have tests,
-will almost **always** result in bugs
-because without tests, not all test cases are considered ..._)
+  # cast/1 simply calls to_string on the value and returns a "success" tuple
+  def cast(value) do
+    {:ok, to_string(value)}
+  end
 
-In order for this refactor to succeed we need to follow these 4 steps:
+  # dump/1 is called when the field value is about to be written to the database
+  def dump(value) do
+    ciphertext = value |> to_string |> AES.encrypt
+    {:ok, ciphertext} # ciphertext is :binary data
+  end
 
-1. Do not _touch_ the tests.
-  + Ensure that the tests all pass before we start refactoring
-  and that coverage is 100%.
-  e.g: https://travis-ci.org/dwyl/phoenix-ecto-encryption-example/jobs/379887597#L833
-2. Update the Schema (_to ensure the data that needs to be hashed
-  is not encrypted before we try to hash it!_)
-3. Create a "generic" function to perform all our data transformations
-that will _replace_ `set_hashed_fields/1` and `encrypt_fields/1`.
-4. Update the `changeset/2` function to _use_ the _new_ function
-and remove the calls to `set_hashed_fields/1` and `encrypt_fields/1`.
+  # load/1 is called when the field is loaded from the database
+  def load(value) do
+    {:ok, AES.decrypt(value)} # decrypted data is :string type.
+  end
 
-#### 10.1 Ensure All Tests Pass
+  # embed_as/1 dictates how the type behaves when embedded (:self or :dump)
+  def embed_as(_), do: :self # preserve the type's higher level representation
+
+  # equal?/2 is called to determine if two field values are semantically equal
+  def equal?(value1, value2), do: value1 == value2
+end
+```
+
+Let's step through each of these
+
+#### `type/0`
+
+The best data type for storing encrypted data is `:binary`
+(_it uses **half** the "space" of a `:string` for the **same** ciphertext_).
+
+#### `cast/1`
+
+Cast any data type `to_string` before encrypting it.
+(_the encrypted data "ciphertext" will be of_ `:binary` _type_)
+
+#### `dump/1`
+
+Calls the `AES.encrypt/1` function we defined in section 3.1 (_above_)
+so data is _encrypted_ 'automatically' before we insert into the database.
+
+#### `load/1`
+
+Calls the `AES.decrypt/1` function so data is 'automatically' _decrypted_ when it is _read_
+from the database.
+
+> _**Note**: the_ `load/2` _function is **not required**
+for Ecto Type compliance.
+Further reading_: https://hexdocs.pm/ecto/Ecto.Type.html
+
+#### `embed_as/1`
+
+This callback is only of importance when the type is part of an [embed](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-associations-embeds-and-on-replace). It's not used here,
+but required for modules adopting the `Ecto.Type` behaviour as of Ecto 3.2.
+
+#### `equal?/2`
+
+This callback is invoked when we cast changes into a changeset and want to
+determine whether the database record needs to be updated. We use a simple
+equality comparison (`==`) to compare the current value to the requested
+update. If both values are equal, there's no need to update the record.
+
+
+_Your_ `encrypted_field.ex` Custom Ecto Type should look like this:
+[`lib/encryption/encrypted_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/encrypted_field.ex)
+`try` to write the **tests** for the callback functions,
+if you get "stuck", take a look at:
+[`test/lib/encrypted_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/encrypted_field_test.exs)
+
+
+Now that we have defined a Custom Ecto Type `EncryptedField`,
+we can _use_ the Type in our User Schema.
+Add the following line to "alias" the Type and a User
+in the `lib/encryption/user.ex` file:
+
+```elixir
+alias Encryption.{EncryptedField, User}
+```
+
+Update the lines for `:email` and `:name` in the schema <br />
+***from***:
+```elixir
+schema "users" do
+  field :email, :binary
+  field :email_hash, HashField
+  field :name, :binary
+  field :password_hash, PasswordField
+
+  timestamps()
+end
+```
+
+**To**:
+```elixir
+schema "users" do
+  field :email, EncryptedField
+  field :email_hash, HashField
+  field :name, EncryptedField
+  field :password_hash, PasswordField
+
+  timestamps()
+end
+```
+
+
+
+#### 8 Ensure All Tests Pass
 
 Typically we will create `git commit` (_if we don't already have one_)
 for the "known state" where the tests were passing
@@ -1496,126 +1353,6 @@ https://travis-ci.org/dwyl/phoenix-ecto-encryption-example/jobs/379887597#L833
 > _**Note**: if you are_ `new` _to Travis-CI see_:
 [https://github.com/dwyl/**learn-travis**](https://github.com/dwyl/learn-travis)
 
-#### 10.2 Re-order `:email_hash` Field in User Schema
-
-We need to re-order the fields in the User schema so that `:email_hash`
-comes ***before*** `:email` so that the email address
-is _not_ encrypted before being hashed whereby
-the hash would always be different!<br />
-***From***:
-```elixir
-schema "users" do
-  field :email, EncryptedField # :binary
-  field :email_hash, Encryption.HashField # :binary
-  field :key_id, :integer
-  field :name, EncryptedField # :binary
-  field :password, :binary, virtual: true # virtual means "don't persist"
-  field :password_hash, Encryption.PasswordField # :binary
-
-  timestamps() # creates columns for inserted_at and updated_at timestamps. =)
-end
-```
-To:
-```elixir
-schema "users" do
-  field :email_hash, HashField # :binary
-  field :email, EncryptedField # :binary
-  field :key_id, :integer
-  field :name, EncryptedField # :binary
-  field :password, :binary, virtual: true # virtual means "don't persist"
-  field :password_hash, PasswordField # :binary
-
-  timestamps() # creates columns for inserted_at and updated_at timestamps. =)
-end
-```
-
-#### 10.3 Create One Generic (DRY) Function that Replaces Two Specific (WET)
-
-In the `user.ex` file we have _two_ functions that perform _similar_ tasks,
-preparing data to be inserted into the database.
-Specifically: `set_hashed_fields/1` and `encrypt_fields/1` which
-perform hashing and encryption respectively.
-
-```elixir
-defp prepare_fields(changeset) do
-  case changeset.valid? do # don't bother transforming the data if invalid.
-    true ->
-      struct = changeset.data.__struct__  # get name of Ecto Struct. e.g: User
-      fields = struct.__schema__(:fields) # get list of fields in the Struct
-      # create map of data transforms stackoverflow.com/a/29924465/1148249
-      changes = Enum.reduce fields, %{}, fn field, acc ->
-        type = struct.__schema__(:type, field)
-        # only check the changeset if it's "valid" and
-        if String.contains? Atom.to_string(type), "Encryption." do
-          primary = case type do
-            Encryption.HashField -> # "primary" field for :email_hash is :email
-              :email
-            Encryption.PasswordField ->
-              :password
-            _ ->
-             field
-          end
-          data = Map.get(changeset.data, primary)    # get plaintext data
-          {:ok, transformed_value} = type.dump(data) # dump (encrypt/hash)
-          Map.put(acc, field, transformed_value)     # assign key:value to Map
-        else
-          acc  # always return the accumulator to avoid "nil is not a map!"
-        end
-      end
-      %{changeset | changes: changes} # apply the changes to the changeset
-    _ ->
-    changeset # return the changeset unmodified for the next function in pipe
-  end
-end
-```
-
-This function uses
-["**type introspection**"](https://en.wikipedia.org/wiki/Type_introspection)
-to determine which fields are on the **Users*** struct (_schema_)
-we know that hashed fields need the `plaintext` data so we
-return the `primary` field for `:email` and `:password`.
-then loops through those fields and determines what `dump` function
-needs to be applied.
-Finally we apply the `changes` to the `changeset`.
-
-
-#### 10.4 Update `changeset/2` function to use `prepare_fields/1`
-
-The last step is the easiest one. simply update the `changeset/2` function,
-***from***:
-```elixir
-def changeset(%User{} = user, attrs \\ %{}) do
-  user
-  |> Map.merge(attrs)
-  |> cast(attrs, [:name, :email])
-  |> validate_required([:name, :email])
-  |> set_hashed_fields              # set the email_hash field
-  |> unique_constraint(:email_hash) # check email_hash is not already in DB
-  |> encrypt_fields
-end
-```
-
-**To**:
-```elixir
-def changeset(%User{} = user, attrs \\ %{}) do
-  user
-  |> Map.merge(attrs)
-  |> cast(attrs, [:name, :email])
-  |> validate_required([:name, :email])
-  |> prepare_fields # hash and/or encrypt the personal data before db insert!
-  |> unique_constraint(:email_hash) # only after the email has been hashed!
-end
-```
-
-Done!
-_Re-run_ the tests!
-you should see:
-https://travis-ci.org/dwyl/phoenix-ecto-encryption-example/builds/380557211#L833
-
-The `user.ex` file now has _fewer_ lines of code
-which are _arguably_ more maintainable.
-The _end_ state of the file _after_ the refactor:
-[`user.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/78ddbc4a085cdb801673cfd960eab0df639009dd/lib/encryption/user.ex)
 
 ### Conclusion
 

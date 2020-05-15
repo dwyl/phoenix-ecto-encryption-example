@@ -30,6 +30,11 @@ defmodule Encryption.UserTest do
       assert user.email_hash == user.email
     end
 
+    test ":email_hash field is the encrypted hash of the email", %{user: user} do
+      user_from_db = User |> Repo.one()
+      assert user_from_db.email_hash == Encryption.HashField.hash(user.email)
+    end
+
     test "changeset validates uniqueness of email through email_hash" do
       # Now attempt to insert the *same* user again:
       {:error, changeset} = Repo.insert(User.changeset(%User{}, @valid_attrs))
