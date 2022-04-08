@@ -4,7 +4,7 @@
 
 [![Build Status](https://img.shields.io/travis/dwyl/phoenix-ecto-encryption-example/master.svg?style=flat-square)](https://travis-ci.org/dwyl/phoenix-ecto-encryption-example)
 [![codecov.io](https://img.shields.io/codecov/c/github/dwyl/phoenix-ecto-encryption-example/master.svg?style=flat-square)](http://codecov.io/github/dwyl/phoenix-ecto-encryption-example?branch=master)
-[![HitCount](http://hits.dwyl.io/dwyl/phoenix-ecto-encryption-example.svg)](https://github.com/dwyl/phoenix-ecto-encryption-example)
+[![HitCount](https://hits.dwyl.com/dwyl/phoenix-ecto-encryption-example.svg)](https://hits.dwyl.com/dwyl/phoenix-ecto-encryption-example)
 
 ## Why?
 
