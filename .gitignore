@@ -28,3 +28,4 @@ npm-debug.log
 .env
 /cover
 package-lock.json
+.DS_Store
