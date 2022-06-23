@@ -20,7 +20,7 @@ There is an entire ("dark") army/industry of people
 ([_cybercriminals_](https://en.wikipedia.org/wiki/Cybercrime))
 who target websites/apps attempting to "steal" data by compromising databases.
 All the time you spend _building_ your app,
-they spend trying to "_break_" apps like yours.  
+they spend trying to "_break_" apps like yours.
 Don't let the people using your app
 be the victims of identity theft,
 protect their personal data!
@@ -412,6 +412,31 @@ Including the IV and ciphertag is _essential_ for allowing decryption,
 without these two pieces of data, we would not be able to "reverse" the process.
 
 
+> _**Note**: in addition to this_ `encrypt/1` _function,
+we have defined an_ `encrypt/2` _"sister" function which accepts
+a **specific** (encryption)_ `key_id` _so that we can use the desired
+encryption key for encrypting a block of text.
+For the purposes of this example/tutorial,
+it's **not strictly necessary**,
+but it is included for "completeness"_.
+
+> _**Note**: If you are running Erlang version 22 or above, you can use the new
+[`crypto` API](http://erlang.org/doc/apps/crypto/new_api.html). To do so,
+replace_
+
+```elixir
+{ciphertext, tag} =
+  :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
+```
+
+> _with_
+
+```elixir
+{ciphertext, tag} =
+  :crypto.crypto_one_time_aead(:aes_256_gcm, key, iv, to_string(plaintext), @aad, 16, true)
+```
+
+
 ##### Test the `encrypt/1` Function
 
 
@@ -495,6 +520,19 @@ _For the purposes of this example/tutorial,
 it's **not strictly necessary**,
 but it is included for "completeness"_.
 
+> _**Note**: If you are running Erlang version 22 or above, you can use the new
+[`crypto` API](http://erlang.org/doc/apps/crypto/new_api.html). To do so,
+replace_
+
+```elixir
+:crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})
+```
+
+> _with_
+
+```elixir
+:crypto.crypto_one_time_aead(:aes_256_gcm, get_key(), iv, ciphertext, @aad, tag, false)
+```
 
 ##### Test the `decrypt/1` Function
 
@@ -1516,10 +1554,10 @@ The `errors` part is:
 ```elixir
 [email_hash: {"has already been taken", []}]
 ```
-A `tuple` _wrapped_ in a `keyword list`.  
+A `tuple` _wrapped_ in a `keyword list`.
 
-Why this construct? A changeset can have multiple errors, so they're stored as a keyword list, where the _key_ is the field, and the _value_ is the error tuple.  
-The first item in the tuple is the error message, and the second is another keyword list, with additional information that we would use when mapping over the errors in order to make them more user-friendly (though here, it's empty).  
+Why this construct? A changeset can have multiple errors, so they're stored as a keyword list, where the _key_ is the field, and the _value_ is the error tuple.
+The first item in the tuple is the error message, and the second is another keyword list, with additional information that we would use when mapping over the errors in order to make them more user-friendly (though here, it's empty).
 See the Ecto docs for [`add_error/4`](https://hexdocs.pm/ecto/Ecto.Changeset.html#add_error/4) and [`traverse_errors/2`](https://hexdocs.pm/ecto/Ecto.Changeset.html#traverse_errors/2) for more information.
 
 So to _access_ the error message `"has already been taken"`
