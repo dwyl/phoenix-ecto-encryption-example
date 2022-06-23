@@ -39,5 +39,7 @@ jobs:
         GITEA_URL: gitea-server.fly.dev
         GITEA_ACCESS_TOKEN: ${{ secrets.GITEA_ACCESS_TOKEN }}
         GIT_TEMP_DIR_PATH: $GITHUB_WORKSPACE
+        SECRET_KEY_BASE: 2PzB7PPnpuLsbWmWtXpGyI+kfSQSQ1zUW2Atz/+8PdZuSEJzHgzGnJWV35nTKRwx
+        ENCRYPTION_KEYS: 'nMdayQpR0aoasLaq1g94FLba+A+wB44JLko47sVQXMg=,L+ZVX8iheoqgqb22mUpATmMDsvVGtafoAeb0KN5uWf0='
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
