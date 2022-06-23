@@ -19,7 +19,9 @@ config :encryption, Encryption.Repo,
   pool: Ecto.Adapters.SQL.Sandbox
 
 config :encryption, Encryption.AES,
-  key: :base64.decode("vA/K/7K6Z3obnTxlPx6fDuy/tiPj4FS7dDtUpfvRbG4=")
+  keys: [
+    :base64.decode("vA/K/7K6Z3obnTxlPx6fDuy/tiPj4FS7dDtUpfvRbG4=")
+  ]
 
 config :argon2_elixir,
   t_cost: 1,
