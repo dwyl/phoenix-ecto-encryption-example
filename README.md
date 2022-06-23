@@ -11,6 +11,22 @@
 
 </div>
 
+<br />
+
+💡 **Note**: we wrote this example/tutorial
+to _understand_ how to do field-level encryption
+from **first principals**.
+Once we solved the problem,
+we built a library to streamline it:
+[**`fields`**](https://github.com/dwyl/fields)
+We still recommend going through this example,
+but if you just want 
+to get on with building your **`Phoenix` App**,
+use
+[**`fields`**](https://github.com/dwyl/fields).
+
+<br />
+
 - [Phoenix Ecto Encryption Example](#phoenix-ecto-encryption-example)
 - [Why?](#why)
 - [What?](#what)
