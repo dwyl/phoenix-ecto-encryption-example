@@ -3,6 +3,7 @@
     "minimum_coverage": 100
   },
   "skip_files": [
+    "lib/encryption_web/channels/user_socket.ex",
     "test/",
     "lib/encryption_web.ex"
   ]

@@ -12,8 +12,14 @@ defmodule Encryption.Mixfile do
       aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [coveralls: :test, "coveralls.detail": :test,
-      "coveralls.post": :test, "coveralls.html": :test]
+      preferred_cli_env: [
+        c: :test,
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test,
+        "coveralls.json": :test
+      ],
     ]
   end
 
@@ -72,6 +78,7 @@ defmodule Encryption.Mixfile do
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate", "test"],
+      c: ["coveralls.html"],
       cover: ["coveralls.json"],
       "cover.html": ["coveralls.html"]
     ]

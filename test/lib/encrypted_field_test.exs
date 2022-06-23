@@ -16,4 +16,8 @@ defmodule Encryption.EncryptedFieldTest do
     assert ciphertext != "hello"
     assert String.length(ciphertext) != 0
   end
+
+  test "embed_as/1 returns :self" do
+    assert Field.embed_as(:self) == :self
+  end
 end
