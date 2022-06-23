@@ -27,7 +27,7 @@ config :phoenix, :json_library, Jason
 
 # run shell command to "source .env" to load the environment variables.
 try do                                     # wrap in "try do"
-  File.stream!("./.env")                   # in case .env file does not exist.
+  File.stream!("./.env_sample")            # in case .env file does not exist.
     |> Stream.map(&String.trim_trailing/1) # remove excess whitespace
     |> Enum.each(fn line -> line           # loop through each line
       |> String.replace("export ", "")     # remove "export" from line
