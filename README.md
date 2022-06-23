@@ -1,3 +1,5 @@
+<div align="center">
+
 # Phoenix Ecto Encryption Example
 
 ![data-encrypted-cropped](https://user-images.githubusercontent.com/194400/36345569-f60382de-1424-11e8-93e9-74ed7eaceb71.jpg)
@@ -6,7 +8,64 @@
 [![codecov.io](https://img.shields.io/codecov/c/github/dwyl/phoenix-ecto-encryption-example/master.svg?style=flat-square)](http://codecov.io/github/dwyl/phoenix-ecto-encryption-example?branch=master)
 [![HitCount](http://hits.dwyl.io/dwyl/phoenix-ecto-encryption-example.svg)](https://github.com/dwyl/phoenix-ecto-encryption-example)
 
-## Why?
+</div>
+
+- [Phoenix Ecto Encryption Example](#phoenix-ecto-encryption-example)
+- [Why?](#why)
+- [What?](#what)
+  - [Technical Overview](#technical-overview)
+    - [OWASP Cryptographic Rules?](#owasp-cryptographic-rules)
+- [Who?](#who)
+  - [Prerequisites?](#prerequisites)
+    - [Crypto Knowledge?](#crypto-knowledge)
+    - [Time Requirement?](#time-requirement)
+- [How?](#how)
+  - [1. Create the `encryption` App](#1-create-the-encryption-app)
+  - [2. Create the `user` Schema (_Database Table_)](#2-create-the-user-schema-database-table)
+  - [3. Define The 6 Functions](#3-define-the-6-functions)
+    - [3.1 Encrypt](#31-encrypt)
+      - [Test the `encrypt/1` Function](#test-the-encrypt1-function)
+    - [3.2 Decrypt](#32-decrypt)
+      - [Test the `decrypt/1` Function](#test-the-decrypt1-function)
+    - [3.3 Get (Encryption) Key](#33-get-encryption-key)
+      - [`ENCRYPTION_KEYS` Environment Variable](#encryption_keys-environment-variable)
+      - [Test the `get_key/0` and `get_key/1` Functions?](#test-the-get_key0-and-get_key1-functions)
+    - [3.4 Hash _Email Address_](#34-hash-email-address)
+      - [Generate the `SECRET_KEY_BASE`](#generate-the-secret_key_base)
+    - [3.5 Hash _Password_](#35-hash-password)
+      - [Add the `argon2` Dependency](#add-the-argon2-dependency)
+      - [Define the `hash_password/1` Function](#define-the-hash_password1-function)
+      - [3.5.1 Test the `hash_password/1` Function?](#351-test-the-hash_password1-function)
+    - [3.6 _Verify_ Password](#36-verify-password)
+      - [Test for `verify_password/2`](#test-for-verify_password2)
+  - [4. _Create_ `EncryptedField` Custom Ecto Type](#4-create-encryptedfield-custom-ecto-type)
+    - [`type/0`](#type0)
+    - [`cast/1`](#cast1)
+    - [`dump/1`](#dump1)
+    - [`load/1`](#load1)
+    - [`load/2`](#load2)
+  - [5. _Use_ `EncryptedField` Ecto Type in User Schema](#5-use-encryptedfield-ecto-type-in-user-schema)
+  - [6. Create `HashField` Ecto Type for Hashing Email Address](#6-create-hashfield-ecto-type-for-hashing-email-address)
+  - [7. _Use_ `HashField` Ecto Type in User Schema](#7-use-hashfield-ecto-type-in-user-schema)
+  - [8. Create `PasswordField` Ecto Type for Hashing Email Address](#8-create-passwordfield-ecto-type-for-hashing-email-address)
+  - [9. _Use_ `PasswordField` Ecto Type in User Schema](#9-use-passwordfield-ecto-type-in-user-schema)
+  - [10. Refactor `set_hashed_fields/1` and `encrypt_fields/1`...?](#10-refactor-set_hashed_fields1-and-encrypt_fields1)
+    - [10.1 Ensure All Tests Pass](#101-ensure-all-tests-pass)
+    - [10.2 Re-order `:email_hash` Field in User Schema](#102-re-order-email_hash-field-in-user-schema)
+    - [10.3 Create One Generic (DRY) Function that Replaces Two Specific (WET)](#103-create-one-generic-dry-function-that-replaces-two-specific-wet)
+    - [10.4 Update `changeset/2` function to use `prepare_fields/1`](#104-update-changeset2-function-to-use-prepare_fields1)
+- [Conclusion](#conclusion)
+  - [Stuck / Need Help?](#stuck--need-help)
+- [_Even_ More!](#even-more)
+  - [How To Generate AES Encryption Keys?](#how-to-generate-aes-encryption-keys)
+  - [Running a Single Test](#running-a-single-test)
+  - [Ecto Validation Error format](#ecto-validation-error-format)
+- [Useful Links, FAQ & Background Reading](#useful-links-faq--background-reading)
+  - [Credits](#credits)
+
+<br />
+
+# Why?
 
 **Encrypting User/Personal data** stored by your Web App is ***essential***
 for security/privacy.
@@ -16,7 +75,7 @@ that depends on "**login**", it is **_storing_ personal data**
 (_by definition_).
 You might be tempted to think that
 data is "safe" in a database, but it's _not_.
-There is an entire ("dark") army/industry of people
+There is an entire (dark") army/industry of people
 ([_cybercriminals_](https://en.wikipedia.org/wiki/Cybercrime))
 who target websites/apps attempting to "steal" data by compromising databases.
 All the time you spend _building_ your app,
@@ -27,7 +86,7 @@ protect their personal data!
 (_it's both the "**right**" **thing to do** and the
  [**law**](https://github.com/dwyl/learn-security/#gdpr) ..._)
 
-## What?
+# What?
 
 This example/tutorial is intended as a _comprehensive_ answer
 to the question:
@@ -36,7 +95,7 @@ to the question:
 **Before** Inserting (Saving) it into the
 Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
 
-### Technical Overview
+## Technical Overview
 
 We are _not_ "re-inventing encryption"
 or using our "own algorithm"
@@ -73,7 +132,7 @@ this example is "***step-by-step***"
 and we are _happy_ to answer/clarify
 _any_ (_relevant and specific_) questions you have!
 
-#### OWASP Cryptographic Rules?
+### OWASP Cryptographic Rules?
 
 This example/tutorial follows
 the Open Web Application Security Project (**OWASP**)
@@ -91,7 +150,7 @@ See:
 + https://www.owasp.org/index.php/Password_Storage_Cheat_Sheet
 
 
-## Who?
+# Who?
 
 This example/tutorial is for _any_ developer
 (_or technical decision maker / "application architect"_) <br />
@@ -100,7 +159,7 @@ and wants a robust/reliable and "transparent" way <br />
 of _encrypting data_ `before` storing it,
 and _decrypting_ when it is queried.
 
-### Prerequisites?
+## Prerequisites?
 
 + Basic **`Elixir`** syntax knowledge: https://github.com/dwyl/learn-elixir
 + Familiarity with the **`Phoenix`** framework: https://github.com/dwyl/learn-phoenix-framework
@@ -161,12 +220,12 @@ and [**fines**](https://www.itgovernance.co.uk/dpa-and-gdpr-penalties)
 of a data breach_.
 
 
-## How?
+# How?
 
 These are "step-by-step" instructions,
 don't skip any step(s).
 
-### 1. Create the `encryption` App
+## 1. Create the `encryption` App
 
 In your Terminal,
 ***create*** a `new` Phoenix application called "encryption":
@@ -220,7 +279,7 @@ The database for Encryption.Repo has been created
 
 
 
-### 2. Create the `user` Schema (_Database Table_)
+## 2. Create the `user` Schema (_Database Table_)
 
 In our _example_ `user` database table,
 we are going to store 3 (_primary_) pieces of data.
@@ -330,7 +389,7 @@ if the database were ever "compromised"
 (provided we keep the encryption keys safe that is!)_
 
 
-### 3. Define The 6 Functions
+## 3. Define The 6 Functions
 
 We need 6 functions for encrypting, decrypting, hashing and verifying
 the data we will be storing:
@@ -355,7 +414,7 @@ the creation of (_and testing_) these functions.
 [github.com/dwyl/**phoenix-ecto-encryption-example/issues**](https://github.com/nelsonic/phoenix-ecto-encryption-example/issues)
 
 
-#### 3.1 Encrypt
+### 3.1 Encrypt
 
 Create a file called `lib/encryption/aes.ex` and copy-paste (_or hand-write_)
 the following code:
@@ -435,7 +494,7 @@ it's **not strictly necessary**,
 but it is included for "completeness"_.
 
 
-##### Test the `encrypt/1` Function
+#### Test the `encrypt/1` Function
 
 
 Create a file called `test/lib/aes_test.exs` and _copy-paste_
@@ -472,7 +531,7 @@ mix test test/lib/aes_test.exs
 [`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
 
-#### 3.2 Decrypt
+### 3.2 Decrypt
 
 The `decrypt` function _reverses_ the work done by `ecrypt`;
 it accepts a "blob" of `ciphertext` (_which as you may recall_),
@@ -519,7 +578,7 @@ it's **not strictly necessary**,
 but it is included for "completeness"_.
 
 
-##### Test the `decrypt/1` Function
+#### Test the `decrypt/1` Function
 
 In the `test/lib/aes_test.exs` add the following test:
 
@@ -538,7 +597,7 @@ are in:
 > And tests are in:
 [`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
-#### 3.3 Get (Encryption) Key
+### 3.3 Get (Encryption) Key
 
 You will have noticed that _both_ `encrypt` and `decrypt` functions
 call a `get_key/0` function. <br />
@@ -573,7 +632,7 @@ and make it available to our App in `config.exs`.
 > _For the **complete** file containing these functions see_:
 [`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
 
-##### `ENCRYPTION_KEYS` Environment Variable
+#### `ENCRYPTION_KEYS` Environment Variable
 
 In order for our `get_key/0` and `get_key/1` functions to _work_,
 it needs to be able to "read" the encryption keys.
@@ -630,7 +689,7 @@ config :encryption, Encryption.AES,
     |> Enum.map(fn key -> :base64.decode(key) end) # decode the key.
 ```
 
-##### Test the `get_key/0` and `get_key/1` Functions?
+#### Test the `get_key/0` and `get_key/1` Functions?
 
 Given that `get_key/0` and `get_key/1` are _both_ `defp` (_i.e. "private"_)
 they are not "exported" with the AES module and therefore cannot be _invoked_
@@ -650,7 +709,7 @@ are in:
 [`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
 
-#### 3.4 Hash _Email Address_
+### 3.4 Hash _Email Address_
 
 
 The idea behind _hashing_ email addresses is to
@@ -684,7 +743,7 @@ user  = Ecto.Adapters.SQL.query!(Encryption.Repo, query, [hash])
 to perform this type of_ <br />
 ``"SELECT ... WHERE field = value"`` _query **effortlessly**_
 
-##### Generate the `SECRET_KEY_BASE`
+#### Generate the `SECRET_KEY_BASE`
 
 All Phoenix apps have a `secret_key_base` for sessions.
 see: http://phoenixframework.org/blog/sessions
@@ -811,7 +870,7 @@ _environment variable_ (_see instructions above_)
 
 
 
-#### 3.5 Hash _Password_
+### 3.5 Hash _Password_
 
 When hashing **passwords**, we want to use the **_strongest_ hashing algorithm**
 and we also want the hashed value (_or "digest"_) to be ***different***
@@ -825,7 +884,7 @@ far less likely_) as is has _both_ a CPU-bound "work-factor"
 _and_ a "Memory-hard" algorithm which will _significantly_
 "slow down" the attacker.
 
-##### Add the `argon2` Dependency
+#### Add the `argon2` Dependency
 
 In order to use `argon2` we must add it to our `mix.exs` file:
 in the `defp deps do` (_dependencies_) section, add the following line:
@@ -837,7 +896,7 @@ in the `defp deps do` (_dependencies_) section, add the following line:
 You will need to run `mix deps.get` to install the dependency.
 
 
-##### Define the `hash_password/1` Function
+#### Define the `hash_password/1` Function
 
 Create a file called `lib/encryption/password_field.ex` in your project.
 The first function we need is `hash_password/1`:
@@ -866,7 +925,7 @@ as we saw before in the `encrypt` function; again,
   + https://github.com/riverrun/argon2_elixir/issues/17
   + https://crypto.stackexchange.com/questions/48935/why-use-argon2i-or-argon2d-if-argon2id-exists
 
-##### 3.5.1 Test the `hash_password/1` Function?
+#### 3.5.1 Test the `hash_password/1` Function?
 
 In order to _test_ the `PasswordField.hash_password/1` function
 we use the `Argon2.verify_pass` function to _verify_ a password hash.
@@ -899,7 +958,7 @@ The test should _pass_;
 if _not_, please re-trace the steps.
 
 
-#### 3.6 _Verify_ Password
+### 3.6 _Verify_ Password
 
 The _corresponding_ function to _check_ (_or "verify"_)
 the password is `verify_password/2`.
@@ -918,7 +977,7 @@ end
 [`lib/encryption/password_field.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/password_field.ex)
 
 
-##### Test for `verify_password/2`
+#### Test for `verify_password/2`
 
 To test that our `verify_password/2` function works as _expected_,
 open the file: `test/lib/password_field_test.exs` <br />
@@ -946,10 +1005,7 @@ and confirm they pass.
 If you get stuck, see:
 [`test/lib/password_field_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/password_field_test.exs)
 
-
-
-
-### 4. _Create_ `EncryptedField` Custom Ecto Type
+## 4. _Create_ `EncryptedField` Custom Ecto Type
 
 Writing a few functions to `encrypt`, `decrypt` and `hash` data
 is a good _start_, <br />
@@ -1029,27 +1085,27 @@ end
 
 Let's step through each of these
 
-#### `type/0`
+### `type/0`
 
 The best data type for storing encrypted data is `:binary`
 (_it uses **half** the "space" of a `:string` for the **same** ciphertext_).
 
-#### `cast/1`
+### `cast/1`
 
 Cast any data type `to_string` before encrypting it.
 (_the encrypted data "ciphertext" will be of_ `:binary` _type_)
 
-#### `dump/1`
+### `dump/1`
 
 Calls the `AES.encrypt/1` function we defined in section 3.1 (_above_)
 so data is _encrypted_ before we insert into the database.
 
-#### `load/1`
+### `load/1`
 
 Calls the `AES.decrypt/1` function so data is _decrypted_ when it is _read_
 from the database.
 
-#### `load/2`
+### `load/2`
 
 Calls the `AES.decrypt/2` function so we can decrypt the `ciphertext`
 using a _specific_ encryption key.
@@ -1068,7 +1124,7 @@ if you get "stuck", take a look at:
 
 
 
-### 5. _Use_ `EncryptedField` Ecto Type in User Schema
+## 5. _Use_ `EncryptedField` Ecto Type in User Schema
 
 Now that we have defined a Custom Ecto Type `EncryptedField`,
 we can _use_ the Type in our User Schema.
@@ -1160,7 +1216,7 @@ _We still need to_ `decrypt` _the data when it is retrieved from the database._
 _Decryption on data retrieval is covered below._
 
 
-### 6. Create `HashField` Ecto Type for Hashing Email Address
+## 6. Create `HashField` Ecto Type for Hashing Email Address
 
 We already added the the `hash/1` _function_ to (SHA256) hash the email address above in
 [**step 3.4**](https://github.com/dwyl/phoenix-ecto-encryption-example#34-hash-email-address),
@@ -1213,7 +1269,7 @@ end
 ```
 
 
-### 7. _Use_ `HashField` Ecto Type in User Schema
+## 7. _Use_ `HashField` Ecto Type in User Schema
 
 _First_ add the `alias` for `HashField` near the top
 of the `lib/encryption/user.ex` file. e.g:
@@ -1311,7 +1367,7 @@ For the _full_ user tests please see:
 [`test/user/user_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/user/user_test.exs)
 
 
-### 8. Create `PasswordField` Ecto Type for Hashing Email Address
+## 8. Create `PasswordField` Ecto Type for Hashing Email Address
 
 We already added the the `hash_password/1` _function_ in
 [**step 3.5**](https://github.com/dwyl/phoenix-ecto-encryption-example#35-hash-password),
@@ -1361,7 +1417,7 @@ end
 ```
 
 
-### 9. _Use_ `PasswordField` Ecto Type in User Schema
+## 9. _Use_ `PasswordField` Ecto Type in User Schema
 
 As before, we need to _use_ the `PasswordField` in our User Schema.
 Remember to `alias` the module at the _top_
@@ -1410,7 +1466,7 @@ and tests please see:
 
  <br />
 
-### 10. Refactor `set_hashed_fields/1` and `encrypt_fields/1`...?
+## 10. Refactor `set_hashed_fields/1` and `encrypt_fields/1`...?
 
 One of the _best_ ways to _confirm_ that you _understood_ the code
 is to attempt to
@@ -1443,7 +1499,7 @@ that will _replace_ `set_hashed_fields/1` and `encrypt_fields/1`.
 4. Update the `changeset/2` function to _use_ the _new_ function
 and remove the calls to `set_hashed_fields/1` and `encrypt_fields/1`.
 
-#### 10.1 Ensure All Tests Pass
+### 10.1 Ensure All Tests Pass
 
 Typically we will create `git commit` (_if we don't already have one_)
 for the "known state" where the tests were passing
@@ -1458,7 +1514,7 @@ https://travis-ci.org/dwyl/phoenix-ecto-encryption-example/jobs/379887597#L833
 > _**Note**: if you are_ `new` _to Travis-CI see_:
 [https://github.com/dwyl/**learn-travis**](https://github.com/dwyl/learn-travis)
 
-#### 10.2 Re-order `:email_hash` Field in User Schema
+### 10.2 Re-order `:email_hash` Field in User Schema
 
 We need to re-order the fields in the User schema so that `:email_hash`
 comes ***before*** `:email` so that the email address
@@ -1491,7 +1547,7 @@ schema "users" do
 end
 ```
 
-#### 10.3 Create One Generic (DRY) Function that Replaces Two Specific (WET)
+### 10.3 Create One Generic (DRY) Function that Replaces Two Specific (WET)
 
 In the `user.ex` file we have _two_ functions that perform _similar_ tasks,
 preparing data to be inserted into the database.
@@ -1541,7 +1597,7 @@ needs to be applied.
 Finally we apply the `changes` to the `changeset`.
 
 
-#### 10.4 Update `changeset/2` function to use `prepare_fields/1`
+### 10.4 Update `changeset/2` function to use `prepare_fields/1`
 
 The last step is the easiest one. simply update the `changeset/2` function,
 ***from***:
@@ -1579,7 +1635,7 @@ which are _arguably_ more maintainable.
 The _end_ state of the file _after_ the refactor:
 [`user.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/78ddbc4a085cdb801673cfd960eab0df639009dd/lib/encryption/user.ex)
 
-### Conclusion
+# Conclusion
 
 We have gone through how to create custom Ecto Types
 in order to define our own functions for handling
@@ -1588,13 +1644,29 @@ in order to define our own functions for handling
 Our hope is that you have _understood_ the flow.
 
 We plan to extend this tutorial include User Interface
-please "star" the repo if you would find that useful.
+please ⭐ the repo if you would find that useful.
 
+## Stuck / Need Help?
+
+If _you_ get "stuck", please open an issue on GitHub:
+https://github.com/nelsonic/phoenix-ecto-encryption-example/issues
+describing the issue you are facing with as much detail as you can.
+
+<!--
+TIL: app names in Phoneix _must_ be lowercase letters: <br />
+![lower-case-app-names](https://user-images.githubusercontent.com/194400/35360087-73d69d88-0154-11e8-9f47-d9a9333d1e6c.png)
+(_basic, I know, now..._)
+
+Works with lowercase:  <br />
+![second-time-lucky](https://user-images.githubusercontent.com/194400/35360183-c522063c-0154-11e8-994a-7516bc0e5c1e.png)
+-->
 
 
 <br /> <br />
 
-### How To Generate AES Encryption Keys?
+# _Even_ More!
+
+## How To Generate AES Encryption Keys?
 
 Encryption keys should be the appropriate length (in bits)
 as required by the chosen algorithm.
@@ -1623,8 +1695,6 @@ We generated 3 keys for demonstration purposes:
 + "nMd/yQpR0aoasLaq1g94FL/a+A+wB44JLko47sVQXMg="
 + "L+ZVX8iheoqgqb22mUpATmMDsvVGt/foAe/0KN5uWf0="
 
-
-
 These two Erlang functions are described in:
 + http://erlang.org/doc/man/crypto.html#strong_rand_bytes-1
 + http://erlang.org/doc/man/base64.html#encode-1
@@ -1636,7 +1706,71 @@ will make the output human-readable
 
 <br /> <br />
 
-## Useful Links, FAQ & Background Reading
+## Running a Single Test
+
+To run a _single_ test (_e.g: while debugging_), use the following syntax:
+```sh
+mix test test/user/user_test.exs:9
+```
+For more detail, please see: https://hexdocs.pm/phoenix/testing.html
+
+## Ecto Validation Error format
+
+When Ecto `changeset` validation fails,
+for example if there is a "unique" constraint on email address
+(_so that people cannot re-register with the same email address twice_),
+Ecto returns the `changeset` with an `errors` key:
+
+```elixir
+#Ecto.Changeset<
+  action: :insert,
+  changes: %{
+    email: <<224, 124, 228, 125, 105, 102, 38, 170, 15, 199, 228, 198, 245, 189,
+      82, 193, 164, 14, 182, 8, 189, 19, 231, 49, 80, 223, 84, 143, 232, 92, 96,
+      156, 100, 4, 7, 162, 26, 2, 121, 32, 187, 65, 254, 50, 253, 101, 202>>,
+    email_hash: <<21, 173, 0, 16, 69, 67, 184, 120, 1, 57, 56, 254, 167, 254,
+      154, 78, 221, 136, 159, 193, 162, 130, 220, 43, 126, 49, 176, 236, 140,
+      131, 133, 130>>,
+    key_id: 1,
+    name: <<2, 215, 188, 71, 109, 131, 60, 147, 219, 168, 106, 157, 224, 120,
+      49, 224, 225, 181, 245, 237, 23, 68, 102, 133, 85, 62, 22, 166, 105, 51,
+      239, 198, 107, 247, 32>>,
+    password_hash: <<132, 220, 9, 85, 60, 135, 183, 155, 214, 215, 156, 180,
+      205, 103, 189, 137, 81, 201, 37, 214, 154, 204, 185, 253, 144, 74, 222,
+      80, 158, 33, 173, 254>>
+  },
+  errors: [email_hash: {"has already been taken", []}],
+  data: #Encryption.User<>,
+  valid?: false
+>
+```
+
+The `errors` part is:
+```elixir
+[email_hash: {"has already been taken", []}]
+```
+A `tuple` _wrapped_ in a `keyword list`.  
+
+Why this construct? A changeset can have multiple errors, so they're stored as a keyword list, where the _key_ is the field, and the _value_ is the error tuple.  
+The first item in the tuple is the error message, and the second is another keyword list, with additional information that we would use when mapping over the errors in order to make them more user-friendly (though here, it's empty).  
+See the Ecto docs for [`add_error/4`](https://hexdocs.pm/ecto/Ecto.Changeset.html#add_error/4) and [`traverse_errors/2`](https://hexdocs.pm/ecto/Ecto.Changeset.html#traverse_errors/2) for more information.
+
+So to _access_ the error message `"has already been taken"`
+we need some pattern-matching and list popping:
+```elixir
+{:error, changeset} = Repo.insert User.changeset(%User{}, @valid_attrs)
+{:ok, message} = Keyword.fetch(changeset.errors, :email_hash)
+msg = List.first(Tuple.to_list(message))
+assert "has already been taken" == msg
+```
+To see this in _action_ run:
+```sh
+mix test test/user/user_test.exs:40
+```
+
+<br /> <br />
+
+# Useful Links, FAQ & Background Reading
 
 + Bits and Bytes: https://web.stanford.edu/class/cs101/bits-bytes.html
 + Thinking in Ecto - Schemas and Changesets:
@@ -1697,85 +1831,6 @@ https://medium.com/acutario/ecto-custom-types-a-practical-case-with-enumerize-ra
 https://elixir-lang.org/getting-started/mix-otp/ets.html &
 https://elixirschool.com/en/lessons/specifics/ets
 
-
-### Running a Single Test
-
-To run a _single_ test (_e.g: while debugging_), use the following syntax:
-```sh
-mix test test/user/user_test.exs:9
-```
-For more detail, please see: https://hexdocs.pm/phoenix/testing.html
-
-### Ecto Validation Error format
-
-When Ecto `changeset` validation fails,
-for example if there is a "unique" constraint on email address
-(_so that people cannot re-register with the same email address twice_),
-Ecto returns the `changeset` with an `errors` key:
-
-```elixir
-#Ecto.Changeset<
-  action: :insert,
-  changes: %{
-    email: <<224, 124, 228, 125, 105, 102, 38, 170, 15, 199, 228, 198, 245, 189,
-      82, 193, 164, 14, 182, 8, 189, 19, 231, 49, 80, 223, 84, 143, 232, 92, 96,
-      156, 100, 4, 7, 162, 26, 2, 121, 32, 187, 65, 254, 50, 253, 101, 202>>,
-    email_hash: <<21, 173, 0, 16, 69, 67, 184, 120, 1, 57, 56, 254, 167, 254,
-      154, 78, 221, 136, 159, 193, 162, 130, 220, 43, 126, 49, 176, 236, 140,
-      131, 133, 130>>,
-    key_id: 1,
-    name: <<2, 215, 188, 71, 109, 131, 60, 147, 219, 168, 106, 157, 224, 120,
-      49, 224, 225, 181, 245, 237, 23, 68, 102, 133, 85, 62, 22, 166, 105, 51,
-      239, 198, 107, 247, 32>>,
-    password_hash: <<132, 220, 9, 85, 60, 135, 183, 155, 214, 215, 156, 180,
-      205, 103, 189, 137, 81, 201, 37, 214, 154, 204, 185, 253, 144, 74, 222,
-      80, 158, 33, 173, 254>>
-  },
-  errors: [email_hash: {"has already been taken", []}],
-  data: #Encryption.User<>,
-  valid?: false
->
-```
-
-The `errors` part is:
-```elixir
-[email_hash: {"has already been taken", []}]
-```
-A `tuple` _wrapped_ in a `keyword list`.  
-
-Why this construct? A changeset can have multiple errors, so they're stored as a keyword list, where the _key_ is the field, and the _value_ is the error tuple.  
-The first item in the tuple is the error message, and the second is another keyword list, with additional information that we would use when mapping over the errors in order to make them more user-friendly (though here, it's empty).  
-See the Ecto docs for [`add_error/4`](https://hexdocs.pm/ecto/Ecto.Changeset.html#add_error/4) and [`traverse_errors/2`](https://hexdocs.pm/ecto/Ecto.Changeset.html#traverse_errors/2) for more information.
-
-So to _access_ the error message `"has already been taken"`
-we need some pattern-matching and list popping:
-```elixir
-{:error, changeset} = Repo.insert User.changeset(%User{}, @valid_attrs)
-{:ok, message} = Keyword.fetch(changeset.errors, :email_hash)
-msg = List.first(Tuple.to_list(message))
-assert "has already been taken" == msg
-```
-To see this in _action_ run:
-```sh
-mix test test/user/user_test.exs:40
-```
-
-### Stuck / Need Help?
-
-If _you_ get "stuck", please open an issue on GitHub:
-https://github.com/nelsonic/phoenix-ecto-encryption-example/issues
-describing the issue you are facing with as much detail as you can.
-
-<!--
-TIL: app names in Phoneix _must_ be lowercase letters: <br />
-![lower-case-app-names](https://user-images.githubusercontent.com/194400/35360087-73d69d88-0154-11e8-9f47-d9a9333d1e6c.png)
-(_basic, I know, now..._)
-
-Works with lowercase:  <br />
-![second-time-lucky](https://user-images.githubusercontent.com/194400/35360183-c522063c-0154-11e8-994a-7516bc0e5c1e.png)
--->
-
-<br /> <br />
 
 ## Credits
 
