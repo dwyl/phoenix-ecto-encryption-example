@@ -3,10 +3,15 @@
 
 # Phoenix Ecto Encryption Example
 
-![data-encrypted-cropped](https://user-images.githubusercontent.com/194400/36345569-f60382de-1424-11e8-93e9-74ed7eaceb71.jpg)
+<img src="https://user-images.githubusercontent.com/194400/36345569-f60382de-1424-11e8-93e9-74ed7eaceb71.jpg" 
+  width="700" alt="data encrypted" />
 
 [![Build Status](https://img.shields.io/travis/dwyl/phoenix-ecto-encryption-example/master.svg?style=flat-square)](https://travis-ci.org/dwyl/phoenix-ecto-encryption-example)
 [![codecov.io](https://img.shields.io/codecov/c/github/dwyl/phoenix-ecto-encryption-example/master.svg?style=flat-square)](https://codecov.io/github/dwyl/phoenix-ecto-encryption-example?branch=master)
+[![Hex.pm](https://img.shields.io/hexpm/v/phoenix?color=brightgreen&style=flat-square)](https://hex.pm/packages/phoenix)
+[![Libraries.io dependency status](https://img.shields.io/librariesio/release/hex/fields?logoColor=brightgreen&style=flat-square)](https://libraries.io/hex/fields)
+[![docs](https://img.shields.io/badge/docs-maintained-brightgreen?style=flat-square)](https://hexdocs.pm/fields/api-reference.html)
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat-square)](https://github.com/dwyl/phoenix-ecto-encryption-example/issues)
 [![HitCount](https://hits.dwyl.com/dwyl/phoenix-ecto-encryption-example.svg)](https://hits.dwyl.com/dwyl/phoenix-ecto-encryption-example)
 
 </div>
@@ -15,10 +20,10 @@
 
 💡 **Note**: we wrote this example/tutorial
 to _understand_ how to do field-level encryption
-from **first principals**.
+from **first principals**. <br />
 Once we solved the problem,
 we built a library to streamline it:
-[**`fields`**](https://github.com/dwyl/fields)
+[**`fields`**](https://github.com/dwyl/fields).<br />
 We still recommend going through this example,
 but if you just want 
 to get on with building your **`Phoenix` App**,
