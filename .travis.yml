@@ -1,10 +1,19 @@
 language: elixir
 elixir:
-  - 1.6.1
-otp_release:
-  - 20.2.4
+  - 1.9
+otp_release:	
+  - 22.1.8
+addons: # ensure that Travis-CI provisions a DB for our test:
+  postgresql: '9.5'
+cache:
+  directories:
+  - _build
+  - deps
 env:
+  global:
   - MIX_ENV=test
+  - SECRET_KEY_BASE=2PzB7PPnpuLsbWmWtXpGyI+kfSQSQ1zUW2Atz/+8PdZuSEJzHgzGnJWV35nTKRwx
+  - ENCRYPTION_KEYS='nMdayQpR0aoasLaq1g94FLba+A+wB44JLko47sVQXMg=,L+ZVX8iheoqgqb22mUpATmMDsvVGtafoAeb0KN5uWf0='
 script:
   # - mix do deps.get, compile --warnings-as-errors, coveralls.json, dogma
   - mix cover

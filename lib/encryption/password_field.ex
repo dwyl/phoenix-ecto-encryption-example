@@ -15,6 +15,10 @@ defmodule Encryption.PasswordField do
     {:ok, value}
   end
 
+  def embed_as(_), do: :self
+
+  def equal?(value1, value2), do: value1 == value2
+
   def hash_password(value) do
     Argon2.Base.hash_password(to_string(value),
       Argon2.gen_salt(), [{:argon2_type, 2}])

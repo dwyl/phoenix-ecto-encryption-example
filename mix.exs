@@ -5,14 +5,14 @@ defmodule Encryption.Mixfile do
     [
       app: :encryption,
       version: "1.0.0",
-      elixir: "~> 1.6",
+      elixir: "~> 1.9",
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
       start_permanent: Mix.env == :prod,
       aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: ["coveralls": :test, "coveralls.detail": :test,
+      preferred_cli_env: [coveralls: :test, "coveralls.detail": :test,
       "coveralls.post": :test, "coveralls.html": :test]
     ]
   end
@@ -65,8 +65,8 @@ defmodule Encryption.Mixfile do
     [
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      "test": ["ecto.create --quiet", "ecto.migrate", "test"],
-      "cover": ["coveralls.json"],
+      test: ["ecto.create --quiet", "ecto.migrate", "test"],
+      cover: ["coveralls.json"],
       "cover.html": ["coveralls.html"]
     ]
   end
