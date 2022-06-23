@@ -1,0 +1,43 @@
+name: Elixir CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    # Need this for the nested git submodule:
+    - name: include test-repo stub Git submodule in base repo
+      run: git submodule update --init
+    - name: Setup git user for Git ops
+      run: |
+          git config --global user.name "Al Ex"
+          git config --global user.email "c@t.co"
+    - name: Set up Elixir
+      uses: erlef/setup-elixir@885971a72ed1f9240973bd92ab57af8c1aa68f24
+      with:
+        elixir-version: '1.12.3' # Define the elixir version [required]
+        otp-version: '24.0.2' # Define the OTP version [required]
+    - name: Restore dependencies cache
+      uses: actions/cache@v2
+      with:
+        path: deps
+        key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+        restore-keys: ${{ runner.os }}-mix-
+    - name: Install dependencies
+      run: mix deps.get
+    - name: Run Tests
+      run: mix coveralls.json
+      env:
+        MIX_ENV: test
+        GITEA_URL: gitea-server.fly.dev
+        GITEA_ACCESS_TOKEN: ${{ secrets.GITEA_ACCESS_TOKEN }}
+        GIT_TEMP_DIR_PATH: $GITHUB_WORKSPACE
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
