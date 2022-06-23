@@ -24,7 +24,7 @@ defmodule Encryption.AESTest do
     <<_iv::binary-16, _tag::binary-16, key_id::unsigned-big-integer-32, _ciphertext::binary>> =
       AES.encrypt("hello")
 
-    assert key_id == 0
+    assert key_id == 1
   end
 
   test ".encrypt does not produce the same ciphertext twice" do

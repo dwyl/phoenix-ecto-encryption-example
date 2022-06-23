@@ -3,7 +3,7 @@
 #
 # This configuration file is loaded before any dependency and
 # is restricted to this project.
-use Mix.Config
+import Mix.Config
 
 # General application configuration
 config :encryption,
@@ -14,8 +14,9 @@ config :encryption, EncryptionWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: System.get_env("SECRET_KEY_BASE"),
   render_errors: [view: EncryptionWeb.ErrorView, accepts: ~w(html json)],
-  pubsub: [name: Encryption.PubSub,
-           adapter: Phoenix.PubSub.PG2]
+  # pubsub: [name: Encryption.PubSub,
+  #          adapter: Phoenix.PubSub.PG2]
+  pubsub_server: Encryption.PubSub
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -49,6 +50,9 @@ config :encryption, Encryption.AES,
 config :argon2_elixir,
   argon2_type: 2
 
+config :esbuild, :version, "0.14.41"
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it over rides the configuration defined above.
 import_config "#{Mix.env}.exs"
+

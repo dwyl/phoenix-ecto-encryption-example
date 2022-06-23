@@ -430,7 +430,7 @@ defmodule Encryption.AES do
     iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
     key = get_key()    # get the *latest* key in the list of encryption keys
     {ciphertext, tag} =
-      :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
+      :crypto.crypto_one_time_aead(:aes_256_gcm, key, iv, to_string(plaintext), @aad, true)
     iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
   end
 
@@ -1397,7 +1397,9 @@ Further reading_: https://hexdocs.pm/ecto/Ecto.Type.html
 
 ### `embed_as/1`
 
-This callback is only of importance when the type is part of an [embed](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-associations-embeds-and-on-replace). It's not used here,
+This callback is only of importance when the type is part of an 
+[embed](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-associations-embeds-and-on-replace). 
+It's not used here,
 but required for modules adopting the `Ecto.Type` behaviour as of Ecto 3.2.
 
 ### `equal?/2`

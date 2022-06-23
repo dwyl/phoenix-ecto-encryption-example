@@ -36,20 +36,26 @@ defmodule Encryption.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [ # Default Phoenix Dependencies
-      {:phoenix, "~> 1.4.0"},
-      {:phoenix_pubsub, "~> 1.0"},
-      {:ecto_sql, "~> 3.0"},
-      {:phoenix_ecto, "~> 4.0"},
-      {:postgrex, ">= 0.0.0"},
-      {:phoenix_html, "~> 2.11"},
-      {:phoenix_live_reload, "~> 1.0", only: :dev},
+      {:phoenix, "~> 1.6.10"},
+      {:phoenix_html, "~> 3.0"},
+      {:phoenix_live_reload, "~> 1.2", only: :dev},
+      {:phoenix_live_view, "~> 0.17.5"},
+      {:floki, ">= 0.30.0", only: :test},
+      {:esbuild, "~> 0.4", runtime: Mix.env() == :dev},
+      {:telemetry_metrics, "~> 0.6"},
+      {:telemetry_poller, "~> 1.0"},
+      {:jason, "~> 1.2"},
+      {:plug_cowboy, "~> 2.5"},
       {:gettext, "~> 0.11"},
-      {:plug_cowboy, "~> 2.0"},
-      {:jason, "~> 1.0"},
+      {:phoenix_ecto, "~> 4.4"},
+      {:ecto_sql, "~> 3.7.1"},
+      {:postgrex, ">= 0.15.13"},
 
       {:argon2_elixir, "~> 1.3"},  # securely hashing & verifying passwords
       # Development dependencies:
-      {:excoveralls, "~> 0.7.0", only: [:test, :dev]}, # tracking test coverage
+
+      # Check test coverage: hex.pm/packages/excoveralls
+      {:excoveralls, "~> 0.14.5", only: :test},
       {:dogma, "~> 0.1", only: [:test, :dev]}, # Elixir style
       {:credo, "~> 0.8.6", only: [:dev, :test]}, # github.com/rrrene/credo
     ]

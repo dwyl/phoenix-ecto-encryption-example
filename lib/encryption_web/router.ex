@@ -15,12 +15,4 @@ defmodule EncryptionWeb.Router do
 
     get("/", PageController, :index)
   end
-
-  # Other scopes may use custom stacks.
-  # pipeline :api do
-  #   plug :accepts, ["json"]
-  # end
-  # scope "/api", EncryptionWeb do
-  #   pipe_through :api
-  # end
 end
