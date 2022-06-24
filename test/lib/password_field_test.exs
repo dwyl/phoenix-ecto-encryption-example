@@ -16,7 +16,7 @@ defmodule Encryption.PasswordFieldTest do
     {:ok, result} = Field.dump("password")
     # IO.inspect result, label: "result"
     assert is_binary(result)
-    assert String.starts_with?(result, "$argon2id$v=19$m=256,t=1,p=1$")
+    assert String.starts_with?(result, "$argon2id$v=19$m=256,t=1,p=2$")
   end
 
   test ".load does not modify the hash, since the hash cannot be reversed" do
