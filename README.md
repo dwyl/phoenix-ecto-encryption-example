@@ -488,7 +488,6 @@ this is what we store in the database.
 Including the IV and ciphertag is _essential_ for allowing decryption,
 without these two pieces of data, we would not be able to "reverse" the process.
 
-
 > _**Note**: in addition to this_ `encrypt/1` _function,
 we have defined an_ `encrypt/2` _"sister" function which accepts
 a **specific** (encryption)_ `key_id` _so that we can use the desired
@@ -496,23 +495,6 @@ encryption key for encrypting a block of text.
 For the purposes of this example/tutorial,
 it's **not strictly necessary**,
 but it is included for "completeness"_.
-
-> _**Note**: If you are running Erlang version 22 or above, you can use the new
-[`crypto` API](http://erlang.org/doc/apps/crypto/new_api.html). To do so,
-replace_
-
-```elixir
-{ciphertext, tag} =
-  :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
-```
-
-> _with_
-
-```elixir
-{ciphertext, tag} =
-  :crypto.crypto_one_time_aead(:aes_256_gcm, key, iv, to_string(plaintext), @aad, 16, true)
-```
-
 
 #### Test the `encrypt/1` Function
 
@@ -562,8 +544,9 @@ the following `decrypt/1` function definition:
 
 ```elixir
 def decrypt(ciphertext) do
-  <<iv::binary-16, tag::binary-16, ciphertext::binary>> = ciphertext
-  :crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})
+  <<iv::binary-16, tag::binary-16, key_id::unsigned-big-integer-32, ciphertext::binary>> =
+    ciphertext
+  :crypto.crypto_one_time_aead(:aes_256_gcm, get_key(key_id), iv, ciphertext, @aad, tag, false)
 end
 ```
 
@@ -575,14 +558,15 @@ using Elixir's binary pattern matching.
 read the following guide:
 https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
 
-The `:crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})`
+The 
+`:crypto.crypto_one_time_aead(:aes_256_gcm, get_key(key_id), iv, ciphertext, @aad, tag, false)`
 line is the _very similar_ to the `encrypt` function.
 
 The `ciphertext` is decrypted using
 [`block_decrypt/4`](https://erlang.org/doc/man/crypto.html#block_decrypt-4)
 passing in the following parameters:
-+ `:aes_gcm` = encyrption algorithm
-+ `get_key()` =  get the encryption key used to `encrypt` the `plaintext`
++ `:aes_256_gcm` = encyrption algorithm
++ `get_key(key_id)` =  get the encryption key used to `encrypt` the `plaintext`
 + `iv` = the original Initialisation Vector used to `encrypt` the `plaintext`
 + `{@aad, ciphertext, tag}` = a Tuple with the encryption "mode",
 `ciphertext` and the `tag` that was originally used to encrypt the `ciphertext`.
@@ -596,20 +580,6 @@ encryption key for decrypting the_ `ciphertext`.
 _For the purposes of this example/tutorial,
 it's **not strictly necessary**,
 but it is included for "completeness"_.
-
-> _**Note**: If you are running Erlang version 22 or above, you can use the new
-[`crypto` API](http://erlang.org/doc/apps/crypto/new_api.html). To do so,
-replace_
-
-```elixir
-:crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})
-```
-
-> _with_
-
-```elixir
-:crypto.crypto_one_time_aead(:aes_256_gcm, get_key(), iv, ciphertext, @aad, tag, false)
-```
 
 #### Test the `decrypt/1` Function
 

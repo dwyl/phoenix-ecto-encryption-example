@@ -54,7 +54,6 @@ defmodule Encryption.AES do
       ciphertext
 
     :crypto.crypto_one_time_aead(:aes_256_gcm, get_key(key_id), iv, ciphertext, @aad, tag, false)
-    # :crypto.block_decrypt(:aes_gcm, , iv, {@aad, ciphertext, tag})
   end
 
   # @doc """
