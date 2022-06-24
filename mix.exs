@@ -54,7 +54,7 @@ defmodule Encryption.Mixfile do
       {:plug_cowboy, "~> 2.5"},
       {:gettext, "~> 0.11"},
       {:phoenix_ecto, "~> 4.4"},
-      {:ecto_sql, "~> 3.7.1"},
+      {:ecto_sql, "~> 3.8.3"},
       {:postgrex, ">= 0.15.13"},
 
       {:argon2_elixir, "~> 3.0"},  # securely hashing & verifying passwords
@@ -63,7 +63,7 @@ defmodule Encryption.Mixfile do
       # Check test coverage: hex.pm/packages/excoveralls
       {:excoveralls, "~> 0.14.5", only: :test},
       {:dogma, "~> 0.1", only: [:test, :dev]}, # Elixir style
-      {:credo, "~> 0.8.6", only: [:dev, :test]}, # github.com/rrrene/credo
+      {:credo, "~> 1.6.4", only: [:dev, :test]}, # github.com/rrrene/credo
     ]
   end
 
