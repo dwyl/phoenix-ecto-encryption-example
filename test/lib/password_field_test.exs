@@ -31,6 +31,10 @@ defmodule Encryption.PasswordFieldTest do
     refute Field.equal?(hash1, hash2)
   end
 
+  test "embed_as/1 returns :self" do
+    assert Field.embed_as(:self) == :self
+  end
+
   test "hash_password/1 uses Argon2id to Hash a value" do
     password = "EverythingisAwesome"
     hash = Field.hash_password(password)

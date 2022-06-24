@@ -1,3 +1,3 @@
 defmodule EncryptionWeb.LayoutViewTest do
-  use EncryptionWeb.ConnCase, async: true
+  import EncryptionWeb.ConnCase #, async: true
 end

@@ -1,12 +1,90 @@
+
+<div align="center">
+
 # Phoenix Ecto Encryption Example
 
-![data-encrypted-cropped](https://user-images.githubusercontent.com/194400/36345569-f60382de-1424-11e8-93e9-74ed7eaceb71.jpg)
+<img src="https://user-images.githubusercontent.com/194400/36345569-f60382de-1424-11e8-93e9-74ed7eaceb71.jpg" 
+  width="700" alt="data encrypted" />
 
 [![Build Status](https://img.shields.io/travis/dwyl/phoenix-ecto-encryption-example/master.svg?style=flat-square)](https://travis-ci.org/dwyl/phoenix-ecto-encryption-example)
 [![codecov.io](https://img.shields.io/codecov/c/github/dwyl/phoenix-ecto-encryption-example/master.svg?style=flat-square)](https://codecov.io/github/dwyl/phoenix-ecto-encryption-example?branch=master)
+[![Hex.pm](https://img.shields.io/hexpm/v/phoenix?color=brightgreen&style=flat-square)](https://hex.pm/packages/phoenix)
+[![Libraries.io dependency status](https://img.shields.io/librariesio/release/hex/fields?logoColor=brightgreen&style=flat-square)](https://libraries.io/hex/fields)
+[![docs](https://img.shields.io/badge/docs-maintained-brightgreen?style=flat-square)](https://hexdocs.pm/fields/api-reference.html)
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat-square)](https://github.com/dwyl/phoenix-ecto-encryption-example/issues)
 [![HitCount](https://hits.dwyl.com/dwyl/phoenix-ecto-encryption-example.svg)](https://hits.dwyl.com/dwyl/phoenix-ecto-encryption-example)
 
-## Why?
+</div>
+
+<br />
+
+💡 **Note**: we wrote this example/tutorial
+to _understand_ how to do field-level encryption
+from **first principals**. <br />
+Once we solved the problem,
+we built a library to streamline it:
+[**`fields`**](https://github.com/dwyl/fields).<br />
+We still recommend going through this example,
+but if you just want 
+to get on with building your **`Phoenix` App**,
+use
+[**`fields`**](https://github.com/dwyl/fields).
+
+<br />
+
+- [Phoenix Ecto Encryption Example](#phoenix-ecto-encryption-example)
+- [Why?](#why)
+- [What?](#what)
+  - [Technical Overview](#technical-overview)
+    - [OWASP Cryptographic Rules?](#owasp-cryptographic-rules)
+- [Who?](#who)
+  - [Prerequisites?](#prerequisites)
+    - [Crypto Knowledge?](#crypto-knowledge)
+    - [Time Requirement?](#time-requirement)
+- [How?](#how)
+  - [1. Create the `encryption` App](#1-create-the-encryption-app)
+  - [2. Create the `user` Schema (_Database Table_)](#2-create-the-user-schema-database-table)
+  - [3. Define The 6 Functions](#3-define-the-6-functions)
+    - [3.1 Encrypt](#31-encrypt)
+      - [Test the `encrypt/1` Function](#test-the-encrypt1-function)
+    - [3.2 Decrypt](#32-decrypt)
+      - [Test the `decrypt/1` Function](#test-the-decrypt1-function)
+    - [3.3 Key rotation](#33-key-rotation)
+      - [Test the `get_key/0` and `get_key/1` Functions?](#test-the-get_key0-and-get_key1-functions)
+    - [3.4  `ENCRYPTION_KEYS` Environment Variable](#34--encryption_keys-environment-variable)
+  - [4. Hash _Email Address_](#4-hash-email-address)
+    - [4.1 Generate the `SECRET_KEY_BASE`](#41-generate-the-secret_key_base)
+  - [5. _Create_ and use `HashField` Custom Ecto Type](#5-create-and-use-hashfield-custom-ecto-type)
+    - [`type/0`](#type0)
+    - [`cast/1`](#cast1)
+    - [`dump/1`](#dump1)
+    - [`load/1`](#load1)
+    - [`embed_as/1`](#embed_as1)
+    - [`equal?/2`](#equal2)
+  - [6. Create and user Hash _Password_ Custom Ecto type](#6-create-and-user-hash-password-custom-ecto-type)
+    - [Add the `argon2` Dependency](#add-the-argon2-dependency)
+    - [6.1 Define the `hash_password/1` Function](#61-define-the-hash_password1-function)
+      - [6.1.1 Test the `hash_password/1` Function?](#611-test-the-hash_password1-function)
+    - [6.2 _Verify_ Password](#62-verify-password)
+        - [Test for `verify_password/2`](#test-for-verify_password2)
+  - [7. _Create_ and use `EncryptedField` Custom Ecto Type](#7-create-and-use-encryptedfield-custom-ecto-type)
+    - [`type/0`](#type0-1)
+    - [`cast/1`](#cast1-1)
+    - [`dump/1`](#dump1-1)
+    - [`load/1`](#load1-1)
+    - [`embed_as/1`](#embed_as1-1)
+    - [`equal?/2`](#equal2-1)
+  - [8. Ensure All Tests Pass](#8-ensure-all-tests-pass)
+- [Conclusion](#conclusion)
+  - [How To Generate AES Encryption Keys?](#how-to-generate-aes-encryption-keys)
+- [Useful Links, FAQ & Background Reading](#useful-links-faq--background-reading)
+  - [Understanding Advanced Encryption Standard (AES)](#understanding-advanced-encryption-standard-aes)
+  - [Running a Single Test](#running-a-single-test)
+  - [Ecto Validation Error format](#ecto-validation-error-format)
+- [Stuck / Need Help?](#stuck--need-help)
+- [Credits](#credits)
+
+# Why?
 
 **Encrypting User/Personal data** stored by your Web App is ***essential***
 for security/privacy.
@@ -27,7 +105,7 @@ protect their personal data!
 (_it's both the "**right**" **thing to do** and the
  [**law**](https://github.com/dwyl/learn-security/#gdpr) ..._)
 
-## What?
+# What?
 
 This example/tutorial is intended as a _comprehensive_ answer
 to the question:
@@ -36,7 +114,7 @@ to the question:
 **Before** Inserting (Saving) it into the
 Database?_"](https://github.com/dwyl/learn-elixir/issues/80)
 
-### Technical Overview
+## Technical Overview
 
 We are _not_ "re-inventing encryption"
 or using our "own algorithm"
@@ -73,7 +151,7 @@ this example is "***step-by-step***"
 and we are _happy_ to answer/clarify
 _any_ (_relevant and specific_) questions you have!
 
-#### OWASP Cryptographic Rules?
+### OWASP Cryptographic Rules?
 
 This example/tutorial follows
 the Open Web Application Security Project (**OWASP**)
@@ -91,7 +169,7 @@ See:
 + https://www.owasp.org/index.php/Password_Storage_Cheat_Sheet
 
 
-## Who?
+# Who?
 
 This example/tutorial is for _any_ developer
 (_or technical decision maker / "application architect"_) <br />
@@ -100,7 +178,7 @@ and wants a robust/reliable and "transparent" way <br />
 of _encrypting data_ `before` storing it,
 and _decrypting_ when it is queried.
 
-### Prerequisites?
+## Prerequisites?
 
 + Basic **`Elixir`** syntax knowledge: https://github.com/dwyl/learn-elixir
 + Familiarity with the **`Phoenix`** framework: https://github.com/dwyl/learn-phoenix-framework
@@ -161,12 +239,12 @@ and [**fines**](https://www.itgovernance.co.uk/dpa-and-gdpr-penalties)
 of a data breach_.
 
 
-## How?
+# How?
 
 These are "step-by-step" instructions,
 don't skip any step(s).
 
-### 1. Create the `encryption` App
+## 1. Create the `encryption` App
 
 In your Terminal,
 ***create*** a `new` Phoenix application called "encryption":
@@ -220,7 +298,7 @@ The database for Encryption.Repo has been created
 
 
 
-### 2. Create the `user` Schema (_Database Table_)
+## 2. Create the `user` Schema (_Database Table_)
 
 In our _example_ `user` database table,
 we are going to store 3 (_primary_) pieces of data.
@@ -315,7 +393,7 @@ from **pgAdmin**: <br />
 ![elixir-encryption-pgadmin-user-table](https://user-images.githubusercontent.com/1466/82065993-1b619c80-96cf-11ea-898e-8cfd0160346e.png)
 
 
-### 3. Define The 6 Functions
+## 3. Define The 6 Functions
 
 We need 6 functions for encrypting, decrypting, hashing and verifying
 the data we will be storing:
@@ -340,7 +418,7 @@ the creation of (_and testing_) these functions.
 [github.com/dwyl/**phoenix-ecto-encryption-example/issues**](https://github.com/nelsonic/phoenix-ecto-encryption-example/issues)
 
 
-#### 3.1 Encrypt
+### 3.1 Encrypt
 
 Create a file called `lib/encryption/aes.ex` and copy-paste (_or hand-write_)
 the following code:
@@ -353,7 +431,7 @@ defmodule Encryption.AES do
     iv = :crypto.strong_rand_bytes(16) # create random Initialisation Vector
     key = get_key()    # get the *latest* key in the list of encryption keys
     {ciphertext, tag} =
-      :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
+      :crypto.crypto_one_time_aead(:aes_256_gcm, key, iv, to_string(plaintext), @aad, true)
     iv <> tag <> ciphertext # "return" iv with the cipher tag & ciphertext
   end
 
@@ -411,7 +489,6 @@ this is what we store in the database.
 Including the IV and ciphertag is _essential_ for allowing decryption,
 without these two pieces of data, we would not be able to "reverse" the process.
 
-
 > _**Note**: in addition to this_ `encrypt/1` _function,
 we have defined an_ `encrypt/2` _"sister" function which accepts
 a **specific** (encryption)_ `key_id` _so that we can use the desired
@@ -420,24 +497,7 @@ For the purposes of this example/tutorial,
 it's **not strictly necessary**,
 but it is included for "completeness"_.
 
-> _**Note**: If you are running Erlang version 22 or above, you can use the new
-[`crypto` API](http://erlang.org/doc/apps/crypto/new_api.html). To do so,
-replace_
-
-```elixir
-{ciphertext, tag} =
-  :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
-```
-
-> _with_
-
-```elixir
-{ciphertext, tag} =
-  :crypto.crypto_one_time_aead(:aes_256_gcm, key, iv, to_string(plaintext), @aad, 16, true)
-```
-
-
-##### Test the `encrypt/1` Function
+#### Test the `encrypt/1` Function
 
 
 Create a file called `test/lib/aes_test.exs` and _copy-paste_
@@ -474,7 +534,7 @@ mix test test/lib/aes_test.exs
 [`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
 
-#### 3.2 Decrypt
+### 3.2 Decrypt
 
 The `decrypt` function _reverses_ the work done by `encrypt`;
 it accepts a "blob" of `ciphertext` (_which as you may recall_),
@@ -485,8 +545,9 @@ the following `decrypt/1` function definition:
 
 ```elixir
 def decrypt(ciphertext) do
-  <<iv::binary-16, tag::binary-16, ciphertext::binary>> = ciphertext
-  :crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})
+  <<iv::binary-16, tag::binary-16, key_id::unsigned-big-integer-32, ciphertext::binary>> =
+    ciphertext
+  :crypto.crypto_one_time_aead(:aes_256_gcm, get_key(key_id), iv, ciphertext, @aad, tag, false)
 end
 ```
 
@@ -498,14 +559,15 @@ using Elixir's binary pattern matching.
 read the following guide:
 https://elixir-lang.org/getting-started/binaries-strings-and-char-lists.html
 
-The `:crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})`
+The 
+`:crypto.crypto_one_time_aead(:aes_256_gcm, get_key(key_id), iv, ciphertext, @aad, tag, false)`
 line is the _very similar_ to the `encrypt` function.
 
 The `ciphertext` is decrypted using
 [`block_decrypt/4`](https://erlang.org/doc/man/crypto.html#block_decrypt-4)
 passing in the following parameters:
-+ `:aes_gcm` = encyrption algorithm
-+ `get_key()` =  get the encryption key used to `encrypt` the `plaintext`
++ `:aes_256_gcm` = encyrption algorithm
++ `get_key(key_id)` =  get the encryption key used to `encrypt` the `plaintext`
 + `iv` = the original Initialisation Vector used to `encrypt` the `plaintext`
 + `{@aad, ciphertext, tag}` = a Tuple with the encryption "mode",
 `ciphertext` and the `tag` that was originally used to encrypt the `ciphertext`.
@@ -520,21 +582,7 @@ _For the purposes of this example/tutorial,
 it's **not strictly necessary**,
 but it is included for "completeness"_.
 
-> _**Note**: If you are running Erlang version 22 or above, you can use the new
-[`crypto` API](http://erlang.org/doc/apps/crypto/new_api.html). To do so,
-replace_
-
-```elixir
-:crypto.block_decrypt(:aes_gcm, get_key(), iv, {@aad, ciphertext, tag})
-```
-
-> _with_
-
-```elixir
-:crypto.crypto_one_time_aead(:aes_256_gcm, get_key(), iv, ciphertext, @aad, tag, false)
-```
-
-##### Test the `decrypt/1` Function
+#### Test the `decrypt/1` Function
 
 In the `test/lib/aes_test.exs` add the following test:
 
@@ -553,7 +601,7 @@ are in:
 > And tests are in:
 [`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
-#### 3.3 Key rotation
+### 3.3 Key rotation
 
 Key rotation is a "**best practice**"
 that **limits** the amount of data an "attacker" can decrypt if the database were ever "compromised"
@@ -626,7 +674,7 @@ For this to work we need to define the keys as an Environment Variable
 and make it available to our App in `config.exs`, see section 3.4.
 
 
-##### Test the `get_key/0` and `get_key/1` Functions?
+#### Test the `get_key/0` and `get_key/1` Functions?
 
 Given that `get_key/0` and `get_key/1` are _both_ `defp` (_i.e. "private"_)
 they are not "exported" with the AES module and therefore cannot be _invoked_
@@ -666,7 +714,7 @@ are in:
 [`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
 
 
-#### 3.4  `ENCRYPTION_KEYS` Environment Variable
+### 3.4  `ENCRYPTION_KEYS` Environment Variable
 
 In order for our `get_key/0` and `get_key/1` functions to _work_,
 it needs to be able to "read" the encryption keys.
@@ -723,9 +771,7 @@ config :encryption, Encryption.AES,
     |> Enum.map(fn key -> :base64.decode(key) end) # decode the key.
 ```
 
-
-
-### 4 Hash _Email Address_
+## 4. Hash _Email Address_
 
 
 The idea behind _hashing_ email addresses is to
@@ -759,7 +805,7 @@ user  = Ecto.Adapters.SQL.query!(Encryption.Repo, query, [hash])
 to perform this type of_ <br />
 ``"SELECT ... WHERE field = value"`` _query **effortlessly**_
 
-##### Generate the `SECRET_KEY_BASE`
+### 4.1 Generate the `SECRET_KEY_BASE`
 
 All Phoenix apps have a `secret_key_base` for sessions.
 see: https://phoenixframework.org/blog/sessions
@@ -840,7 +886,7 @@ config :encryption, EncryptionWeb.Endpoint,
 By adding the previous code block we will now have a `secret_key_base` which
 we will be able to use for testing.
 
-### 5. _Create_ and use `HashField` Custom Ecto Type
+## 5. _Create_ and use `HashField` Custom Ecto Type
 
 When we first created the Ecto Schema for our "user", in
 [Step 2](https://github.com/dwyl/phoenix-ecto-encryption-example#2-create-the-user-schema-database-table)
@@ -927,17 +973,17 @@ end
 
 Let's step through each of these
 
-#### `type/0`
+### `type/0`
 
 The best data type for storing encrypted data is `:binary`
 (_it uses **half** the "space" of a `:string` for the **same** ciphertext_).
 
-#### `cast/1`
+### `cast/1`
 
 Cast any data type `to_string` before encrypting it.
 (_the encrypted data "ciphertext" will be of_ `:binary` _type_)
 
-#### `dump/1`
+### `dump/1`
 
 The `hash/1` function use Erlang's `crypto` library
 [`hash/2`](https://erlang.org/doc/man/crypto.html#hash-2) function.
@@ -955,16 +1001,16 @@ in case the DB is ever "compromised"
 the "attacker" still has to "compute"
 a ["rainbow table"](https://en.wikipedia.org/wiki/Rainbow_table) from _scratch_.
 
-#### `load/1`
+### `load/1`
 
 Return the hash value as it is _read_ from the database.
 
-#### `embed_as/1`
+### `embed_as/1`
 
 This callback is only of importance when the type is part of an [embed](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-associations-embeds-and-on-replace). It's not used here,
 but required for modules adopting the `Ecto.Type` behaviour as of Ecto 3.2.
 
-#### `equal?/2`
+### `equal?/2`
 
 This callback is invoked when we cast changes into a changeset and want to
 determine whether the database record needs to be updated. We use a simple
@@ -1054,7 +1100,7 @@ For the _full_ user tests please see:
 [`test/user/user_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/user/user_test.exs)
 
 
-#### 6 Create and user Hash _Password_ Custom Ecto type
+## 6. Create and user Hash _Password_ Custom Ecto type
 
 When hashing **passwords**, we want to use the **_strongest_ hashing algorithm**
 and we also want the hashed value (_or "digest"_) to be ***different***
@@ -1068,7 +1114,7 @@ far less likely_) as is has _both_ a CPU-bound "work-factor"
 _and_ a "Memory-hard" algorithm which will _significantly_
 "slow down" the attacker.
 
-##### Add the `argon2` Dependency
+### Add the `argon2` Dependency
 
 In order to use `argon2` we must add it to our `mix.exs` file:
 in the `defp deps do` (_dependencies_) section, add the following line:
@@ -1080,7 +1126,7 @@ in the `defp deps do` (_dependencies_) section, add the following line:
 You will need to run `mix deps.get` to install the dependency.
 
 
-##### Define the `hash_password/1` Function
+### 6.1 Define the `hash_password/1` Function
 
 Create a file called `lib/encryption/password_field.ex` in your project.
 The first function we need is `hash_password/1`:
@@ -1109,7 +1155,7 @@ as we saw before in the `encrypt` function; again,
   + https://github.com/riverrun/argon2_elixir/issues/17
   + https://crypto.stackexchange.com/questions/48935/why-use-argon2i-or-argon2d-if-argon2id-exists
 
-##### 6.1 Test the `hash_password/1` Function?
+#### 6.1.1 Test the `hash_password/1` Function?
 
 In order to _test_ the `PasswordField.hash_password/1` function
 we use the `Argon2.verify_pass` function to _verify_ a password hash.
@@ -1142,7 +1188,7 @@ The test should _pass_;
 if _not_, please re-trace the steps.
 
 
-#### 6.2 _Verify_ Password
+### 6.2 _Verify_ Password
 
 The _corresponding_ function to _check_ (_or "verify"_)
 the password is `verify_password/2`.
@@ -1258,7 +1304,7 @@ end
 
 
 
-### 7. _Create_ and use `EncryptedField` Custom Ecto Type
+## 7. _Create_ and use `EncryptedField` Custom Ecto Type
 
 
 Create a file called `lib/encryption/encrypted_field.ex` and add the following:
@@ -1296,22 +1342,22 @@ end
 
 Let's step through each of these
 
-#### `type/0`
+### `type/0`
 
 The best data type for storing encrypted data is `:binary`
 (_it uses **half** the "space" of a `:string` for the **same** ciphertext_).
 
-#### `cast/1`
+### `cast/1`
 
 Cast any data type `to_string` before encrypting it.
 (_the encrypted data "ciphertext" will be of_ `:binary` _type_)
 
-#### `dump/1`
+### `dump/1`
 
 Calls the `AES.encrypt/1` function we defined in section 3.1 (_above_)
 so data is _encrypted_ 'automatically' before we insert into the database.
 
-#### `load/1`
+### `load/1`
 
 Calls the `AES.decrypt/1` function so data is 'automatically' _decrypted_ when it is _read_
 from the database.
@@ -1320,12 +1366,14 @@ from the database.
 for Ecto Type compliance.
 Further reading_: https://hexdocs.pm/ecto/Ecto.Type.html
 
-#### `embed_as/1`
+### `embed_as/1`
 
-This callback is only of importance when the type is part of an [embed](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-associations-embeds-and-on-replace). It's not used here,
+This callback is only of importance when the type is part of an 
+[embed](https://hexdocs.pm/ecto/Ecto.Changeset.html#module-associations-embeds-and-on-replace). 
+It's not used here,
 but required for modules adopting the `Ecto.Type` behaviour as of Ecto 3.2.
 
-#### `equal?/2`
+### `equal?/2`
 
 This callback is invoked when we cast changes into a changeset and want to
 determine whether the database record needs to be updated. We use a simple
@@ -1376,7 +1424,7 @@ end
 
 
 
-#### 8 Ensure All Tests Pass
+## 8. Ensure All Tests Pass
 
 Typically we will create `git commit` (_if we don't already have one_)
 for the "known state" where the tests were passing
@@ -1392,7 +1440,7 @@ https://travis-ci.org/dwyl/phoenix-ecto-encryption-example/jobs/379887597#L833
 [https://github.com/dwyl/**learn-travis**](https://github.com/dwyl/learn-travis)
 
 
-### Conclusion
+# Conclusion
 
 We have gone through how to create custom Ecto Types
 in order to define our own functions for handling
@@ -1407,7 +1455,7 @@ please "star" the repo if you would find that useful.
 
 <br /> <br />
 
-### How To Generate AES Encryption Keys?
+## How To Generate AES Encryption Keys?
 
 Encryption keys should be the appropriate length (in bits)
 as required by the chosen algorithm.
@@ -1449,7 +1497,7 @@ will make the output human-readable
 
 <br /> <br />
 
-## Useful Links, FAQ & Background Reading
+# Useful Links, FAQ & Background Reading
 
 + Bits and Bytes: https://web.stanford.edu/class/cs101/bits-bytes.html
 + Thinking in Ecto - Schemas and Changesets:
@@ -1510,8 +1558,20 @@ https://medium.com/acutario/ecto-custom-types-a-practical-case-with-enumerize-ra
 https://elixir-lang.org/getting-started/mix-otp/ets.html &
 https://elixirschool.com/en/lessons/specifics/ets
 
+## Understanding Advanced Encryption Standard (AES)
 
-### Running a Single Test
+If you prefer to _read_, 
+Ryo Nakao wrote an excellent post on
+understanding how AES encryption works:
+https://nakabonne.dev/posts/understanding-how-aes-encryption-works/
+
+If you have the bandwidth and prefer a video,
+Computerphile (YouTube channel)
+has an great explaination:
+
+[![aes-explanation](https://user-images.githubusercontent.com/6057298/69802900-8aefd800-11d2-11ea-92de-03406751b910.png)](https://www.youtube.com/watch?v=O4xNJsjtN6E)
+
+## Running a Single Test
 
 To run a _single_ test (_e.g: while debugging_), use the following syntax:
 ```sh
@@ -1519,7 +1579,7 @@ mix test test/user/user_test.exs:9
 ```
 For more detail, please see: https://hexdocs.pm/phoenix/testing.html
 
-### Ecto Validation Error format
+## Ecto Validation Error format
 
 When Ecto `changeset` validation fails,
 for example if there is a "unique" constraint on email address
@@ -1573,7 +1633,7 @@ To see this in _action_ run:
 mix test test/user/user_test.exs:40
 ```
 
-### Stuck / Need Help?
+# Stuck / Need Help?
 
 If _you_ get "stuck", please open an issue on GitHub:
 https://github.com/nelsonic/phoenix-ecto-encryption-example/issues
@@ -1590,7 +1650,7 @@ Works with lowercase:  <br />
 
 <br /> <br />
 
-## Credits
+# Credits
 
 Inspiration/credit/thanks for this example goes to **Daniel Berkompas**
 [@danielberkompas](https://github.com/danielberkompas)

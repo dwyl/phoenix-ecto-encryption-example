@@ -11,7 +11,7 @@ defmodule Encryption.User do
     field(:email_hash, HashField)
     # :binary
     field(:email, EncryptedField)
-    field(:key_id, :integer)
+    # field(:key_id, :integer)
     # :binary
     field(:name, EncryptedField)
     # virtual means "don't persist"
@@ -75,8 +75,9 @@ defmodule Encryption.User do
   Retrieve one user from the database and decrypt the encrypted data.
   """
   def one() do
+    key_id= 0
     user =
-      %User{name: name, email: email, key_id: key_id, password_hash: password_hash} =
+      %User{name: name, email: email, password_hash: password_hash} =
       Repo.one(User)
 
     {:ok, email} = EncryptedField.load(email, key_id)
@@ -100,10 +101,11 @@ defmodule Encryption.User do
           %User{
             name: name,
             email: email,
-            key_id: key_id,
+            # key_id: key_id,
             password_hash: password_hash
           } = result
 
+        key_id= 0
         {:ok, email} = EncryptedField.load(email, key_id)
         {:ok, name} = EncryptedField.load(name, key_id)
         {:ok, %{user | email: email, name: name, password_hash: password_hash}}

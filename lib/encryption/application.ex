@@ -11,9 +11,10 @@ defmodule Encryption.Application do
       # Start the Ecto repository
       supervisor(Encryption.Repo, []),
       # Start the endpoint when the application starts
-      supervisor(EncryptionWeb.Endpoint, [])
+      supervisor(EncryptionWeb.Endpoint, []),
       # Start your own worker by calling: Encryption.Worker.start_link(arg1, arg2, arg3)
       # worker(Encryption.Worker, [arg1, arg2, arg3]),
+      {Phoenix.PubSub, [name: Encryption.PubSub, adapter: Phoenix.PubSub.PG2]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

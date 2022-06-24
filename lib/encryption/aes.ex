@@ -33,7 +33,8 @@ defmodule Encryption.AES do
     # get latest ID;
     key_id = get_key_id()
     # {ciphertext, tag} = :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, plaintext, 16})
-    {ciphertext, tag} = :crypto.block_encrypt(:aes_gcm, key, iv, {@aad, to_string(plaintext), 16})
+    {ciphertext, tag} = 
+      :crypto.crypto_one_time_aead(:aes_256_gcm, key, iv, to_string(plaintext), @aad, true)
     iv <> tag <> <<key_id::unsigned-big-integer-32>> <> ciphertext
   end
 
@@ -52,7 +53,7 @@ defmodule Encryption.AES do
     <<iv::binary-16, tag::binary-16, key_id::unsigned-big-integer-32, ciphertext::binary>> =
       ciphertext
 
-    :crypto.block_decrypt(:aes_gcm, get_key(key_id), iv, {@aad, ciphertext, tag})
+    :crypto.crypto_one_time_aead(:aes_256_gcm, get_key(key_id), iv, ciphertext, @aad, tag, false)
   end
 
   # @doc """

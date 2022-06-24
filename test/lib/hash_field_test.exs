@@ -48,4 +48,8 @@ defmodule Encryption.HashFieldTest do
     assert Field.equal?(hash1, hash1)
     refute Field.equal?(hash1, hash2)
   end
+
+  test "embed_as/1 returns :self" do
+    assert Field.embed_as(:self) == :self
+  end
 end
