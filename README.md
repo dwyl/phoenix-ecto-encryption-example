@@ -78,6 +78,7 @@ use
 - [Conclusion](#conclusion)
   - [How To Generate AES Encryption Keys?](#how-to-generate-aes-encryption-keys)
 - [Useful Links, FAQ & Background Reading](#useful-links-faq--background-reading)
+  - [Understanding Advanced Encryption Standard (AES)](#understanding-advanced-encryption-standard-aes)
   - [Running a Single Test](#running-a-single-test)
   - [Ecto Validation Error format](#ecto-validation-error-format)
 - [Stuck / Need Help?](#stuck--need-help)
@@ -1557,6 +1558,18 @@ https://medium.com/acutario/ecto-custom-types-a-practical-case-with-enumerize-ra
 https://elixir-lang.org/getting-started/mix-otp/ets.html &
 https://elixirschool.com/en/lessons/specifics/ets
 
+## Understanding Advanced Encryption Standard (AES)
+
+If you prefer to _read_, 
+Ryo Nakao wrote an excellent post on
+understanding how AES encryption works:
+https://nakabonne.dev/posts/understanding-how-aes-encryption-works/
+
+If you have the bandwidth and prefer a video,
+Computerphile (YouTube channel)
+has an great explaination:
+
+[![aes-explanation](https://user-images.githubusercontent.com/6057298/69802900-8aefd800-11d2-11ea-92de-03406751b910.png)](https://www.youtube.com/watch?v=O4xNJsjtN6E)
 
 ## Running a Single Test
 
