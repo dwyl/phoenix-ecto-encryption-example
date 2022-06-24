@@ -1136,7 +1136,7 @@ defmodule Encryption.PasswordField do
 
   def hash_password(value) do
     Argon2.Base.hash_password(to_string(value),
-      Argon2.gen_salt(), [{:argon2_type, 2}])
+      Argon2.Base.gen_salt(), [{:argon2_type, 2}])
   end
 
 end
@@ -1146,7 +1146,7 @@ end
 [`Argon2.Base.hash_password/3`](https://hexdocs.pm/argon2_elixir/Argon2.Base.html#hash_password/3)
 passing in 3 arguments:
 + `value` - the value (_password_) to be hashed.
-+ `Argon2.gen_salt()` - the salt used to initialise the hash function
++ [`Argon2.Base.gen_salt/1`](https://hexdocs.pm/argon2_elixir/Argon2.Base.html#gen_salt/1) - the salt used to initialise the hash function
 note: "behind the scenes" just
 [`:crypto.strong_rand_bytes(16)`](https://github.com/riverrun/argon2_elixir/blob/d283a4f316a2a26e61f032a826ff992a480018c2/lib/argon2.ex#L76)
 as we saw before in the `encrypt` function; again,
@@ -1262,7 +1262,7 @@ defmodule Encryption.PasswordField do
 
   def hash_password(value) do
     Argon2.Base.hash_password(to_string(value),
-      Argon2.gen_salt(), [{:argon2_type, 2}])
+      Argon2.Base.gen_salt(), [{:argon2_type, 2}])
   end
 
   def verify_password(password, stored_hash) do
