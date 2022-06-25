@@ -545,9 +545,9 @@ the following `decrypt/1` function definition:
 
 ```elixir
 def decrypt(ciphertext) do
-  <<iv::binary-16, tag::binary-16, key_id::unsigned-big-integer-32, ciphertext::binary>> =
+  <<iv::binary-16, tag::binary-16, ciphertext::binary>> =
     ciphertext
-  :crypto.crypto_one_time_aead(:aes_256_gcm, get_key(key_id), iv, ciphertext, @aad, tag, false)
+  :crypto.crypto_one_time_aead(:aes_256_gcm, get_key(), iv, ciphertext, @aad, tag, false)
 end
 ```
 
@@ -671,47 +671,7 @@ The second case `get_key/1` lets you supply the `key_id` to be "looked up":
 Both versions of `get_key` use encryption_keys/0 function to call the `Application.get_env` function:
 `Application.get_env(:encryption, Encryption.AES)[:keys]` _specifically_.
 For this to work we need to define the keys as an Environment Variable
-and make it available to our App in `config.exs`, see section 3.4.
-
-
-#### Test the `get_key/0` and `get_key/1` Functions?
-
-Given that `get_key/0` and `get_key/1` are _both_ `defp` (_i.e. "private"_)
-they are not "exported" with the AES module and therefore cannot be _invoked_
-outside of the AES module.
-
-The `get_key/0` and `get_key/1` are _invoked_ by `encrypt/1` and `decrypt/1`
-and thus provided these (public) latter functions
-are tested adequately, the "private" functions will be too.
-
-Re-run the tests `mix test test/lib/aes_test.exs` and confirm they _still_ pass.
-
-We also define a test in order to verify the working of key rotation. We add a new encryption key and assert (and make sure) that an encrypted value with an older encryption key will still be decrypted correctly.
-
-```elixir
-  test "can still decrypt the value after adding a new encryption key" do
-    encrypted_value = "hello" |> AES.encrypt()
-
-    original_keys = Application.get_env(:encryption, Encryption.AES)[:keys]
-
-    # add a new key
-    Application.put_env(:encryption, Encryption.AES,
-      keys: original_keys ++ [:crypto.strong_rand_bytes(32)]
-    )
-
-    assert "hello" == encrypted_value |> AES.decrypt()
-
-    # rollback to the original keys
-    Application.put_env(:encryption, Encryption.AES, keys: original_keys)
-  end
-
-```
-
-> The full `encrypt` & `decrypt` function definitions with `@doc` comments
-are in:
-[`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
-> And tests are in:
-[`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
+and make it available to our App in `config.exs`.
 
 
 ### 3.4  `ENCRYPTION_KEYS` Environment Variable
@@ -771,6 +731,47 @@ config :encryption, Encryption.AES,
     |> Enum.map(fn key -> :base64.decode(key) end) # decode the key.
 ```
 
+#### Test the `get_key/0` and `get_key/1` Functions?
+
+Given that `get_key/0` and `get_key/1` are _both_ `defp` (_i.e. "private"_)
+they are not "exported" with the AES module and therefore cannot be _invoked_
+outside of the AES module.
+
+The `get_key/0` and `get_key/1` are _invoked_ by `encrypt/1` and `decrypt/1`
+and thus provided these (public) latter functions
+are tested adequately, the "private" functions will be too.
+
+Re-run the tests `mix test test/lib/aes_test.exs` and confirm they _still_ pass.
+
+We also define a test in order to verify the working of key rotation. We add a new encryption key and assert (and make sure) that an encrypted value with an older encryption key will still be decrypted correctly.
+
+```elixir
+  test "can still decrypt the value after adding a new encryption key" do
+    encrypted_value = "hello" |> AES.encrypt()
+
+    original_keys = Application.get_env(:encryption, Encryption.AES)[:keys]
+
+    # add a new key
+    Application.put_env(:encryption, Encryption.AES,
+      keys: original_keys ++ [:crypto.strong_rand_bytes(32)]
+    )
+
+    assert "hello" == encrypted_value |> AES.decrypt()
+
+    # rollback to the original keys
+    Application.put_env(:encryption, Encryption.AES, keys: original_keys)
+  end
+
+```
+
+> The full `encrypt` & `decrypt` function definitions with `@doc` comments
+are in:
+[`lib/encryption/aes.ex`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/lib/encryption/aes.ex)
+> And tests are in:
+[`test/lib/aes_test.exs`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/test/lib/aes_test.exs)
+
+
+
 ## 4. Hash _Email Address_
 
 
@@ -808,7 +809,7 @@ to perform this type of_ <br />
 ### 4.1 Generate the `SECRET_KEY_BASE`
 
 All Phoenix apps have a `secret_key_base` for sessions.
-see: https://phoenixframework.org/blog/sessions
+see: https://hexdocs.pm/plug/1.13.6/Plug.Session.COOKIE.html
 
 Run the following command to generate a new phoenix secret key:
 
@@ -823,6 +824,12 @@ export SECRET_KEY_BASE={YourSecreteKeyBaseGeneratedUsing-mix_phx.gen.secret}
 
 Your `.env` file should look _similar_ to:
 [`.env_sample`](https://github.com/dwyl/phoenix-ecto-encryption-example/blob/master/.env_sample)
+
+Load the secret key into your environment by typing into your terminal:
+
+```sh
+source .env
+```
 
 <!--
 #### _Alternatively_ Copy The `.env_sample` File
@@ -880,7 +887,7 @@ config :encryption, EncryptionWeb.Endpoint,
 config :encryption, EncryptionWeb.Endpoint,
   http: [port: 4001],
   server: false,
-  secret_key_base: "3PXN/6k6qoxqQjWFskGew4r74yp7oJ1UNF6wjvJSHjC5Y5LLIrDpWxrJ84UBphJn"
+  secret_key_base: System.get_env("SECRET_KEY_BASE")
 ```
 
 By adding the previous code block we will now have a `secret_key_base` which
@@ -1079,6 +1086,18 @@ We should _test_ this new functionality. Create the file
 `test/lib/user_test.exs` and add the following:
 
 ```elixir
+defmodule Encryption.UserTest do
+  use Encryption.DataCase
+  alias Encryption.User
+
+  @valid_attrs %{
+    name: "Max",
+    email: "max@example.com",
+    password: "NoCarbsBeforeMarbs"
+  }
+
+  @invalid_attrs %{}
+
   describe "Verify correct working of hashing" do
     setup do
       user = Repo.insert!(User.changeset(%User{}, @valid_attrs))
@@ -1094,6 +1113,7 @@ We should _test_ this new functionality. Create the file
       assert user_from_db.email_hash == Encryption.HashField.hash(user.email)
     end
   end
+end
 ```
 
 For the _full_ user tests please see:
@@ -1109,8 +1129,8 @@ each time the _same_ `plaintext` is hashed
   where we want a deterministic digest_).
 
 Using `argon2` makes "cracking" a password
-(_in the event of the database being "compromised"
-far less likely_) as is has _both_ a CPU-bound "work-factor"
+(_in the event of the database being "compromised")
+far less likely_ as it uses _both_ a CPU-bound "work-factor"
 _and_ a "Memory-hard" algorithm which will _significantly_
 "slow down" the attacker.
 
@@ -1168,7 +1188,7 @@ defmodule Encryption.PasswordFieldTest do
   use ExUnit.Case
   alias Encryption.PasswordField, as: Field
 
-  test "hash_password/1 uses Argon2id to Hash a value" do
+  test ".verify_password checks the password against the Argon2id Hash" do
     password = "EverythingisAwesome"
     hash = Field.hash_password(password)
     verified = Argon2.verify_pass(password, hash)
@@ -1214,13 +1234,6 @@ open the file: `test/lib/password_field_test.exs` <br />
 and add the following code to it:
 
 ```elixir
-test "verify_password checks the password against the Argon2id Hash" do
-  password = "EverythingisAwesome"
-  hash = Field.hash_password(password)
-  verified = Field.verify_password(password, hash)
-  assert verified
-end
-
 test ".verify_password fails if password does NOT match hash" do
   password = "EverythingisAwesome"
   hash = Field.hash_password(password)
@@ -1394,7 +1407,7 @@ Add the following line to "alias" the Type and a User
 in the `lib/encryption/user.ex` file:
 
 ```elixir
-alias Encryption.{EncryptedField, User}
+alias Encryption.{HashField, PasswordField, EncryptedField, User}
 ```
 
 Update the lines for `:email` and `:name` in the schema <br />
