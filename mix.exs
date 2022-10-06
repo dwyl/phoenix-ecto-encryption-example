@@ -61,7 +61,7 @@ defmodule Encryption.Mixfile do
       # Development dependencies:
 
       # Check test coverage: hex.pm/packages/excoveralls
-      {:excoveralls, "~> 0.14.5", only: :test},
+      {:excoveralls, "~> 0.15.0", only: :test},
       {:dogma, "~> 0.1", only: [:test, :dev]}, # Elixir style
       {:credo, "~> 1.6.4", only: [:dev, :test]}, # github.com/rrrene/credo
     ]
