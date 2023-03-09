@@ -4,10 +4,10 @@ defmodule Encryption.Mixfile do
   def project do
     [
       app: :encryption,
-      version: "1.0.0",
-      elixir: "~> 1.9",
+      version: "1.7.0",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers,
+      compilers: Mix.compilers,
       start_permanent: Mix.env == :prod,
       aliases: aliases(),
       deps: deps(),
@@ -42,10 +42,11 @@ defmodule Encryption.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [ # Default Phoenix Dependencies
-      {:phoenix, "~> 1.6.10"},
+      {:phoenix, "~> 1.7.1"},
       {:phoenix_html, "~> 3.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 0.18.0"},
+      {:phoenix_view, "~> 2.0"},
       {:floki, ">= 0.30.0", only: :test},
       {:esbuild, "~> 0.4", runtime: Mix.env() == :dev},
       {:telemetry_metrics, "~> 0.6"},
