@@ -6,7 +6,7 @@
 <img src="https://user-images.githubusercontent.com/194400/36345569-f60382de-1424-11e8-93e9-74ed7eaceb71.jpg" 
   width="700" alt="data encrypted" />
 
-[![Build Status](https://img.shields.io/travis/dwyl/phoenix-ecto-encryption-example/master.svg?style=flat-square)](https://travis-ci.org/dwyl/phoenix-ecto-encryption-example)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/dwyl/phoenix-ecto-encryption-example/ci.yml?label=build&style=flat-square&branch=main)](https://github.com/dwyl/phoenix-ecto-encryption-example/actions)
 [![codecov.io](https://img.shields.io/codecov/c/github/dwyl/phoenix-ecto-encryption-example/master.svg?style=flat-square)](https://codecov.io/github/dwyl/phoenix-ecto-encryption-example?branch=master)
 [![Hex.pm](https://img.shields.io/hexpm/v/phoenix?color=brightgreen&style=flat-square)](https://hex.pm/packages/phoenix)
 [![docs](https://img.shields.io/badge/docs-maintained-brightgreen?style=flat-square)](https://hexdocs.pm/fields/api-reference.html)
