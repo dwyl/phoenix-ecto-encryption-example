@@ -36,7 +36,8 @@ defmodule EncryptionWeb do
       import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
 
       # Use all HTML functionality (forms, tags, etc)
-      use Phoenix.HTML
+      import Phoenix.HTML
+      use PhoenixHTMLHelpers
 
       import EncryptionWeb.Router.Helpers
       import EncryptionWeb.ErrorHelpers
