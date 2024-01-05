@@ -3,7 +3,7 @@
 #
 # This configuration file is loaded before any dependency and
 # is restricted to this project.
-import Mix.Config
+import Config
 
 # General application configuration
 config :encryption,
@@ -55,4 +55,3 @@ config :esbuild, :version, "0.14.41"
 # Import environment specific config. This must remain at the bottom
 # of this file so it over rides the configuration defined above.
 import_config "#{Mix.env}.exs"
-
