@@ -59,7 +59,7 @@ defmodule Encryption.Mixfile do
       {:ecto_sql, "~> 3.11.0"},
       {:postgrex, ">= 0.15.13"},
 
-      {:argon2_elixir, "~> 3.0"},  # securely hashing & verifying passwords
+      {:argon2_elixir, "~> 4.0"},  # securely hashing & verifying passwords
       # Development dependencies:
 
       # Check test coverage: hex.pm/packages/excoveralls
