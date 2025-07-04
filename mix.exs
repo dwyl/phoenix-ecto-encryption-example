@@ -56,7 +56,7 @@ defmodule Encryption.Mixfile do
       {:plug_cowboy, "~> 2.5"},
       {:gettext, "~> 0.11"},
       {:phoenix_ecto, "~> 4.4"},
-      {:ecto_sql, "~> 3.12.0"},
+      {:ecto_sql, "~> 3.13.2"},
       {:postgrex, ">= 0.15.13"},
 
       {:argon2_elixir, "~> 4.1"},  # securely hashing & verifying passwords
