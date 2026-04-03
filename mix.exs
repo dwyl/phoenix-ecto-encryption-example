@@ -12,14 +12,20 @@ defmodule Encryption.Mixfile do
       aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
         c: :test,
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
         "coveralls.html": :test,
-        "coveralls.json": :test
-      ],
+        docs: :docs,
+        t: :test
+      ]
     ]
   end
 
